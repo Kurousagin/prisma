@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- cartucho (silhueta) — tinta aplicada pelo tema no Android 13+ -->
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="M45,24 L63,24 L63,31 L45,31 Z
+            M40,31 L68,31 A5,5 0 0 1 73,36 L73,75 A5,5 0 0 1 68,80 L40,80 A5,5 0 0 1 35,75 L35,36 A5,5 0 0 1 40,31 Z
+            M42,43 L66,43 L66,61 L42,61 Z" />
+</vector>
