@@ -35,7 +35,13 @@ class GameActivity : ComponentActivity() {
             if (romUri.scheme == "file") {
                 gameFilePath = romUri.path
             } else {
-                gameFileBytes = contentResolver.openInputStream(romUri)!!.use { it.readBytes() }  // SAF
+                // SAF: grava num arquivo temp COM a extensão certa e passa o caminho.
+                // Cores multi-sistema (genesis_plus_gx: MD/SMS/GG) precisam da extensão —
+                // carregar só por bytes falha ("Cannot load game").
+                val ext = (romUri.lastPathSegment ?: "").substringAfterLast('.', "rom")
+                val tmp = File(cacheDir, "currentrom.$ext")
+                contentResolver.openInputStream(romUri)!!.use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+                gameFilePath = tmp.absolutePath
             }
             systemDirectory = filesDir.absolutePath
             savesDirectory = filesDir.absolutePath
