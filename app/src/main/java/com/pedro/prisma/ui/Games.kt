@@ -63,13 +63,15 @@ object Games {
     fun stateKey(e: GameEntry): String =
         (e.title + "_" + e.system.label).replace(Regex("[^A-Za-z0-9]"), "_")
 
-    fun launch(context: Context, entry: GameEntry) {
+    /** load: "auto" (continua do auto-save), "new" (começa do zero) ou "1".."3" (carrega o slot). */
+    fun launch(context: Context, entry: GameEntry, load: String = "auto") {
         val intent = Intent(context, com.pedro.prisma.GameActivity::class.java)
             .putExtra("core", entry.system.core)
             .putExtra("rom", entry.uri.toString())
             .putExtra("key", stateKey(entry))
             .putExtra("system", entry.system.label)
             .putExtra("title", entry.title)
+            .putExtra("load", load)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(intent) }
     }
