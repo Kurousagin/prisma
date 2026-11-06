@@ -187,12 +187,6 @@ fun BoxArt(game: GameEntry, modifier: Modifier = Modifier, reloadKey: Any = Unit
                 }
             }
         }
-        if (Games.isPtBr(game.title)) {
-            Box(
-                Modifier.align(Alignment.TopEnd).padding(6.dp).clip(RoundedCornerShape(6.dp))
-                    .background(P.good).padding(horizontal = 6.dp, vertical = 2.dp),
-            ) { Text("PT-BR", color = Color(0xFF06301D), fontSize = 8.sp, fontWeight = FontWeight.Bold) }
-        }
     }
 }
 
