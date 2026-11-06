@@ -39,6 +39,7 @@ class GameActivity : ComponentActivity() {
             savesDirectory = filesDir.absolutePath
             variables = com.pedro.prisma.ui.CoreTuning.variables(core)  // tuning por core (ex: idle opt no GBA)
             skipDuplicateFrames = true                                   // não re-renderiza quadro igual (poupa GPU/bateria)
+            shader = com.pedro.prisma.ui.ShaderPrefs.config(this@GameActivity)  // filtro de vídeo escolhido
         }
         retroView = GLRetroView(this, data)
         lifecycle.addObserver(retroView)
