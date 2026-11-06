@@ -12,6 +12,7 @@ import java.net.URLEncoder
 object Covers {
 
     fun load(context: Context, entry: GameEntry): Bitmap? {
+        userCover(context, entry)?.let { return it }   // capa escolhida à mão vence tudo
         localCover(entry)?.let { return it }
 
         val sys = entry.system.thumbDir ?: return null
@@ -51,6 +52,34 @@ object Covers {
         if (c.responseCode != 200) { c.disconnect(); return null }
         c.inputStream.use { it.readBytes() }
     }.getOrNull()
+
+    /** Capa só do que já está em disco (sem rede) — pra usos rápidos, como a animação de abertura. */
+    fun cached(context: Context, entry: GameEntry): Bitmap? {
+        userCover(context, entry)?.let { return it }
+        localCover(entry)?.let { return it }
+        entry.system.thumbDir ?: return null
+        val cacheName = (entry.title + "_" + entry.system.label).replace(Regex("[^A-Za-z0-9]"), "_")
+        val cache = File(context.cacheDir, "covers/$cacheName.png")
+        if (cache.exists()) {
+            val b = cache.readBytes()
+            if (b.isNotEmpty()) return BitmapFactory.decodeByteArray(b, 0, b.size)
+        }
+        return null
+    }
+
+    /** Capa que o usuário escolheu da galeria, guardada por key (independe de ter caminho de arquivo). */
+    private fun userFile(context: Context, entry: GameEntry) =
+        File(context.filesDir, "covers/${Games.stateKey(entry)}.png")
+
+    private fun userCover(context: Context, entry: GameEntry): Bitmap? {
+        val f = userFile(context, entry)
+        return if (f.exists()) BitmapFactory.decodeFile(f.path) else null
+    }
+
+    fun saveUserCover(context: Context, entry: GameEntry, bytes: ByteArray) {
+        val f = userFile(context, entry)
+        runCatching { f.parentFile?.mkdirs(); f.writeBytes(bytes) }
+    }
 
     private fun localCover(entry: GameEntry): Bitmap? {
         val f = entry.file ?: return null

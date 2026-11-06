@@ -5,6 +5,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.lifecycleScope
 import com.pedro.prisma.ui.TouchGamepad
@@ -45,6 +46,19 @@ class GameActivity : ComponentActivity() {
         root.addView(ComposeView(this).apply { setContent { TouchGamepad(retroView, system) { finish() } } })
         setContentView(root)
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
+
+        // animação "inserindo o cartucho no console" (por cima, enquanto o jogo carrega)
+        if (com.pedro.prisma.ui.IntroPrefs.shouldShow(this, key)) {
+            val title = intent.getStringExtra("title") ?: key
+            val sysObj = com.pedro.prisma.ui.Games.systems.find { it.label == system }
+            val cover = sysObj?.let {
+                com.pedro.prisma.ui.Covers.cached(this, com.pedro.prisma.ui.GameEntry(title, it, romUri))
+                    ?.asImageBitmap()
+            }
+            val overlay = ComposeView(this)
+            overlay.setContent { com.pedro.prisma.ui.IntroInsert(system, cover) { root.removeView(overlay) } }
+            root.addView(overlay)
+        }
     }
 
     override fun onResume() {
