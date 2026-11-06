@@ -50,22 +50,33 @@ fun TouchGamepad(retro: GLRetroView, system: String) {
         // botões de ação — layout por console
         Box(Modifier.align(Alignment.BottomEnd).padding(0.dp, 0.dp, 18.dp, 22.dp)) {
             when (system) {
+                // SNES: losango colorido (cores do Super Famicom)
                 "Super Nintendo" -> Box(Modifier.size(168.dp)) {
-                    Hold("X", KeyEvent.KEYCODE_BUTTON_X, retro, Modifier.align(Alignment.TopCenter), 56.dp)
-                    Hold("Y", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier.align(Alignment.CenterStart), 56.dp)
-                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier.align(Alignment.CenterEnd), 56.dp)
-                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier.align(Alignment.BottomCenter), 56.dp)
+                    Hold("X", KeyEvent.KEYCODE_BUTTON_X, retro, Modifier.align(Alignment.TopCenter), 56.dp, Color(0xFF2F6AE0))
+                    Hold("Y", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier.align(Alignment.CenterStart), 56.dp, Color(0xFF36B06A))
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier.align(Alignment.CenterEnd), 56.dp, Color(0xFFE0485A))
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier.align(Alignment.BottomCenter), 56.dp, Color(0xFFE8B84A), Color(0xFF3A2A00))
                 }
                 // Mega Drive: A=RetroPad Y, B=B, C=A (mapeamento do genesis_plus_gx)
                 "Mega Drive" -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Hold("A", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier, 58.dp)
-                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 58.dp)
-                    Hold("C", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 58.dp)
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier, 58.dp, Color(0xFF5A5A66))
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 58.dp, Color(0xFF5A5A66))
+                    Hold("C", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 58.dp, Color(0xFF5A5A66))
                 }
-                // NES, Game Boy, Game Boy Advance: só B e A
+                // NES: A/B vermelhos
+                "NES" -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 62.dp, Color(0xFFC23B2E))
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 62.dp, Color(0xFFC23B2E))
+                }
+                // Game Boy: A/B vinho
+                "Game Boy" -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 62.dp, Color(0xFF9E3357))
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 62.dp, Color(0xFF9E3357))
+                }
+                // GBA: A/B roxos
                 else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 62.dp)
-                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 62.dp)
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 62.dp, Color(0xFF6B5BFF))
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 62.dp, Color(0xFF6B5BFF))
                 }
             }
         }
@@ -82,12 +93,15 @@ fun TouchGamepad(retro: GLRetroView, system: String) {
 }
 
 @Composable
-private fun Hold(label: String, keyCode: Int, retro: GLRetroView, modifier: Modifier, d: Dp) {
+private fun Hold(
+    label: String, keyCode: Int, retro: GLRetroView, modifier: Modifier, d: Dp,
+    fill: Color = CREAM, fg: Color = Color.White,
+) {
     var down by remember { mutableStateOf(false) }
     Box(
         modifier.size(d).clip(CircleShape)
-            .background(CREAM.copy(alpha = if (down) 0.9f else 0.32f))
-            .border(1.dp, Color.White.copy(alpha = .3f), CircleShape)
+            .background(fill.copy(alpha = if (down) 1f else 0.6f))
+            .border(1.dp, Color.White.copy(alpha = .35f), CircleShape)
             .pointerInput(keyCode) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -97,7 +111,7 @@ private fun Hold(label: String, keyCode: Int, retro: GLRetroView, modifier: Modi
                 }
             },
         contentAlignment = Alignment.Center,
-    ) { Text(label, color = if (down) Color(0xFF2A2433) else Color.White.copy(alpha = .9f), fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+    ) { Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = 18.sp) }
 }
 
 @Composable
