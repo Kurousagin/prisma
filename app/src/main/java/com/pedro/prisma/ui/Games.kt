@@ -63,6 +63,10 @@ object Games {
     fun stateKey(e: GameEntry): String =
         (e.title + "_" + e.system.label).replace(Regex("[^A-Za-z0-9]"), "_")
 
+    /** Heurística: o jogo parece ser uma tradução/hack PT-BR? (pelo nome) */
+    private val ptbrRegex = Regex("\\(br\\)|\\[br\\]|pt-?br|portugu|traduzid", RegexOption.IGNORE_CASE)
+    fun isPtBr(title: String): Boolean = ptbrRegex.containsMatchIn(title)
+
     /** load: "auto" (continua do auto-save), "new" (começa do zero) ou "1".."3" (carrega o slot). */
     fun launch(context: Context, entry: GameEntry, load: String = "auto") {
         val intent = Intent(context, com.pedro.prisma.GameActivity::class.java)

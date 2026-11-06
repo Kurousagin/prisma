@@ -187,6 +187,12 @@ fun BoxArt(game: GameEntry, modifier: Modifier = Modifier, reloadKey: Any = Unit
                 }
             }
         }
+        if (Games.isPtBr(game.title)) {
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(6.dp).clip(RoundedCornerShape(6.dp))
+                    .background(P.good).padding(horizontal = 6.dp, vertical = 2.dp),
+            ) { Text("PT-BR", color = Color(0xFF06301D), fontSize = 8.sp, fontWeight = FontWeight.Bold) }
+        }
     }
 }
 
@@ -296,22 +302,35 @@ private fun ConsoleGlyph() {
 /* ---------------- Biblioteca ---------------- */
 @Composable
 private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String) -> Unit, onOpen: (GameEntry) -> Unit) {
+    val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
-    val systems = listOf("Todos") + Games.systems.map { it.label }
+    var sort by remember { mutableStateOf("az") }   // az | recent
+    val systems = listOf("Todos", "★ Favoritos") + Games.systems.map { it.label }
     val q = query.trim()
+    val favs = Favorites.all(ctx)
     val shown = games.filter {
-        (filter == "Todos" || it.system.label == filter) &&
-            (q.isEmpty() || it.title.contains(q, ignoreCase = true))
-    }
+        val okFilter = when (filter) {
+            "Todos" -> true
+            "★ Favoritos" -> favs.contains(Games.stateKey(it))
+            else -> it.system.label == filter
+        }
+        okFilter && (q.isEmpty() || it.title.contains(q, ignoreCase = true))
+    }.let { l -> if (sort == "recent") l.sortedByDescending { it.added } else l.sortedBy { it.title.lowercase() } }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         AppBar("Biblioteca")
         SearchField(query) { query = it }
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             systems.forEach { s -> FilterChip(s, s == filter) { onFilter(s) } }
         }
-        Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp,
-            modifier = Modifier.padding(bottom = 8.dp))
+        Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp)
+            Spacer(Modifier.weight(1f))
+            Text("Ordenar:", color = P.faint, fontSize = 11.5.sp, modifier = Modifier.padding(end = 7.dp))
+            SortChip("A-Z", sort == "az") { sort = "az" }
+            Spacer(Modifier.width(6.dp))
+            SortChip("Recentes", sort == "recent") { sort = "recent" }
+        }
         if (shown.isEmpty()) {
             Text("Nenhum jogo encontrado.", color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 32.dp))
         } else LazyVerticalGrid(
@@ -360,6 +379,16 @@ private fun FilterChip(label: String, on: Boolean, onClick: () -> Unit) {
     ) { Text(label, color = if (on) Color.White else P.dim, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
 }
 
+@Composable
+private fun SortChip(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(999.dp))
+            .background(if (on) P.card2 else Color.Transparent)
+            .border(1.dp, if (on) P.p1 else P.line, RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 5.dp),
+    ) { Text(label, color = if (on) P.p2 else P.dim, fontSize = 11.5.sp, fontWeight = FontWeight.Bold) }
+}
+
 /* ---------------- Detalhe ---------------- */
 @Composable
 private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
@@ -367,6 +396,7 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
     val resumes = inProgress(ctx, g)
     var showQr by remember { mutableStateOf(false) }
     var coverV by remember { mutableStateOf(0) }
+    var fav by remember { mutableStateOf(Favorites.contains(ctx, Games.stateKey(g))) }
     val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val bytes = runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
@@ -386,17 +416,21 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 BoxArt(g, Modifier.width(92.dp).height(112.dp), coverV)
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(g.title, color = P.ink, fontSize = 21.sp, fontWeight = FontWeight.Bold, lineHeight = 23.sp)
                     Text(g.system.label, color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                     Text(if (resumes) "em andamento" else "novo jogo", color = P.faint, fontSize = 12.5.sp)
                 }
+                Text(
+                    if (fav) "★" else "☆", fontSize = 26.sp, color = if (fav) Color(0xFFE8B84A) else P.dim,
+                    modifier = Modifier.clickable { fav = Favorites.toggle(ctx, Games.stateKey(g)) }.padding(4.dp),
+                )
             }
             Spacer(Modifier.height(18.dp))
             if (resumes) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.weight(1f).clip(RoundedCornerShape(15.dp)).background(P.grad)
+                        Modifier.weight(1f).clip(RoundedCornerShape(15.dp)).background(consoleGrad(g.system.label))
                             .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
                         contentAlignment = Alignment.Center,
                     ) { Text("▶ CONTINUAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
@@ -410,7 +444,7 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
                     modifier = Modifier.padding(top = 8.dp))
             } else {
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(P.grad)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(consoleGrad(g.system.label))
                         .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
                     contentAlignment = Alignment.Center,
                 ) { Text("▶ JOGAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
