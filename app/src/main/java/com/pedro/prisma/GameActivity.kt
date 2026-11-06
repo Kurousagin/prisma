@@ -41,8 +41,15 @@ class GameActivity : ComponentActivity() {
         lifecycle.addObserver(retroView)
         val root = FrameLayout(this)
         root.addView(retroView)
-        root.addView(ComposeView(this).apply { setContent { TouchGamepad(retroView) { finish() } } })
+        val system = intent.getStringExtra("system") ?: ""
+        root.addView(ComposeView(this).apply { setContent { TouchGamepad(retroView, system) { finish() } } })
         setContentView(root)
+        com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
+    }
+
+    override fun onResume() {
+        super.onResume()
+        com.pedro.prisma.remote.InputBus.view = retroView
 
         // continua de onde parou: restaura o estado quando o core terminar de carregar
         lifecycleScope.launch {
@@ -57,6 +64,7 @@ class GameActivity : ComponentActivity() {
 
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
     override fun onPause() {
+        com.pedro.prisma.remote.InputBus.view = null
         val f = stateFile
         if (f != null) runCatching { f.writeBytes(retroView.serializeState()) }
         super.onPause()

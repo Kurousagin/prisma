@@ -68,6 +68,7 @@ object Games {
             .putExtra("core", entry.system.core)
             .putExtra("rom", entry.uri.toString())
             .putExtra("key", stateKey(entry))
+            .putExtra("system", entry.system.label)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(intent) }
     }

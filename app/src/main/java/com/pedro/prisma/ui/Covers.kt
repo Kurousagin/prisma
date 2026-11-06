@@ -4,32 +4,54 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.File
+import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-/** Capa (box art): arquivo local ao lado da ROM (quando é arquivo), ou baixada do banco libretro (com cache). */
+/** Capa (box art): arquivo local ao lado da ROM, ou baixada do banco libretro (com cache, inclusive de "não achou"). */
 object Covers {
 
     fun load(context: Context, entry: GameEntry): Bitmap? {
         localCover(entry)?.let { return it }
 
+        val sys = entry.system.thumbDir ?: return null
         val cacheName = (entry.title + "_" + entry.system.label).replace(Regex("[^A-Za-z0-9]"), "_")
         val cache = File(context.cacheDir, "covers/$cacheName.png")
-        if (cache.exists()) return BitmapFactory.decodeFile(cache.path)
+        if (cache.exists()) {
+            val b = cache.readBytes()
+            return if (b.isNotEmpty()) BitmapFactory.decodeByteArray(b, 0, b.size) else null // vazio = já tentou e não achou
+        }
 
-        val url = libretroUrl(entry) ?: return null
-        return runCatching {
-            val bytes = URL(url).openConnection().apply {
-                connectTimeout = 4000
-                readTimeout = 6000
-            }.getInputStream().use { it.readBytes() }
-            cache.parentFile?.mkdirs()
-            cache.writeBytes(bytes)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-        }.getOrNull()
+        for (name in candidates(entry.title)) {
+            val url = "https://thumbnails.libretro.com/${enc(sys)}/Named_Boxarts/${enc(name)}.png"
+            val bytes = download(url) ?: continue
+            runCatching { cache.parentFile?.mkdirs(); cache.writeBytes(bytes) }
+            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }
+        // marca como "não tem" pra não ficar re-baixando toda vez
+        runCatching { cache.parentFile?.mkdirs(); cache.writeBytes(ByteArray(0)) }
+        return null
     }
 
-    /** <nome>.png/.jpg ao lado da ROM (só vale p/ ROM que é arquivo local). */
+    /** Nomes candidatos no banco: o próprio, o base (sem tags) e as regiões comuns. */
+    private fun candidates(title: String): List<String> {
+        val base = title
+            .replace(Regex("\\s*\\([^)]*\\)"), "")   // tira (BR), (T1.0), (www...), etc.
+            .replace(Regex("\\s*\\[[^]]*\\]"), "")
+            .trim()
+        val names = mutableListOf(title, base)
+        for (region in listOf("USA", "Europe", "Japan", "World", "USA, Europe")) names += "$base ($region)"
+        return names.map { it.replace(Regex("[&*/:`<>?\\\\|]"), "_") }.filter { it.isNotBlank() }.distinct()
+    }
+
+    private fun download(url: String): ByteArray? = runCatching {
+        val c = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 4000; readTimeout = 6000; instanceFollowRedirects = true
+        }
+        if (c.responseCode != 200) { c.disconnect(); return null }
+        c.inputStream.use { it.readBytes() }
+    }.getOrNull()
+
     private fun localCover(entry: GameEntry): Bitmap? {
         val f = entry.file ?: return null
         val dir = f.parentFile ?: return null
@@ -40,12 +62,6 @@ object Covers {
             }
         }
         return null
-    }
-
-    private fun libretroUrl(entry: GameEntry): String? {
-        val sys = entry.system.thumbDir ?: return null
-        val name = entry.title.replace(Regex("[&*/:`<>?\\\\|]"), "_")
-        return "https://thumbnails.libretro.com/${enc(sys)}/Named_Boxarts/${enc(name)}.png"
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")

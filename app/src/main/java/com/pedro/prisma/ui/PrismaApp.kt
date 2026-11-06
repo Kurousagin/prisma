@@ -129,10 +129,12 @@ private fun OnboardingScan(done: Int, total: Int) {
         verticalArrangement = Arrangement.Center,
     ) {
         Image(
-            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.drawable.logo_prisma),
-            contentDescription = "Prisma", modifier = Modifier.fillMaxWidth(0.82f), contentScale = ContentScale.Fit,
+            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.mipmap.ic_launcher_foreground),
+            contentDescription = null, modifier = Modifier.size(128.dp).clip(RoundedCornerShape(30.dp)),
         )
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(14.dp))
+        Text("Prisma", color = P.ink, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(14.dp))
         Text("Sua jornada nostálgica começa aqui.", color = P.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
         Text("Encontrando ROMs e baixando as capas…", color = P.dim, fontSize = 13.sp, textAlign = TextAlign.Center)
@@ -152,9 +154,11 @@ private fun OnboardingScan(done: Int, total: Int) {
 private fun LogoHeader() {
     Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Image(
-            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.drawable.logo_prisma),
-            contentDescription = "Prisma", modifier = Modifier.height(38.dp), contentScale = ContentScale.Fit,
+            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.mipmap.ic_launcher_foreground),
+            contentDescription = null, modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)),
         )
+        Spacer(Modifier.width(9.dp))
+        Text("Prisma", color = P.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -220,10 +224,14 @@ private fun HomeTab(games: List<GameEntry>, onPickFolder: () -> Unit, onOpen: (G
             )
             PickFolderButton(onPickFolder)
         } else {
-            Section("Adicionados recentemente")
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                games.sortedByDescending { it.added }.take(12).forEach { g ->
-                    BoxArt(g, Modifier.width(118.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) })
+            val recentes = games.filter { System.currentTimeMillis() - it.added < 3L * 24 * 3600 * 1000 }
+                .sortedByDescending { it.added }
+            if (recentes.isNotEmpty()) {
+                Section("Adicionados recentemente")
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    recentes.take(12).forEach { g ->
+                        BoxArt(g, Modifier.width(118.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) })
+                    }
                 }
             }
             Section("Todos os jogos")
@@ -265,13 +273,34 @@ private fun ConsoleChip(label: String, onClick: () -> Unit) {
                 .background(Brush.linearGradient(listOf(c, Color(0x59000000).compositeOverLike(c))))
                 .border(1.dp, Color.White.copy(alpha = .18f), RoundedCornerShape(19.dp)),
             contentAlignment = Alignment.Center,
-        ) { Text(label.take(2).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
+        ) { ConsoleGlyph() }
         Spacer(Modifier.height(6.dp))
         Text(label, color = P.dim, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 private fun Color.compositeOverLike(base: Color) = Color(base.red * .4f, base.green * .4f, base.blue * .4f, 1f)
+
+/** Ícone de cartucho desenhado (branco) — identidade de "console" em vez de letras. */
+@Composable
+private fun ConsoleGlyph() {
+    androidx.compose.foundation.Canvas(Modifier.size(32.dp)) {
+        val w = size.width; val h = size.height
+        val white = Color.White.copy(alpha = 0.95f)
+        val dark = Color(0xFF1A1326)
+        drawRoundRect(white, topLeft = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.08f),
+            size = androidx.compose.ui.geometry.Size(w * 0.40f, h * 0.16f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.04f, w * 0.04f))
+        drawRoundRect(white, topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.16f),
+            size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.70f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f, w * 0.08f))
+        drawRoundRect(dark, topLeft = androidx.compose.ui.geometry.Offset(w * 0.31f, h * 0.30f),
+            size = androidx.compose.ui.geometry.Size(w * 0.38f, h * 0.26f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f, w * 0.03f))
+        for (i in 0..3) drawRect(dark, topLeft = androidx.compose.ui.geometry.Offset(w * (0.33f + i * 0.095f), h * 0.66f),
+            size = androidx.compose.ui.geometry.Size(w * 0.05f, h * 0.12f))
+    }
+}
 
 /* ---------------- Biblioteca ---------------- */
 @Composable

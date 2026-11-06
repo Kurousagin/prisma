@@ -18,14 +18,14 @@ class RemoteServer(private val context: Context, port: Int = 8080) : NanoHTTPD(p
         "ENTER" to "KEYCODE_ENTER", "DEL" to "KEYCODE_DEL", "SPACE" to "KEYCODE_SPACE",
     )
 
-    // botões do modo gamepad (segurar via down/up)
+    // botões do modo gamepad → keycodes (enviados direto ao jogo via InputBus, sem ADB)
     private val gameKeys = mapOf(
-        "UP" to "KEYCODE_DPAD_UP", "DOWN" to "KEYCODE_DPAD_DOWN",
-        "LEFT" to "KEYCODE_DPAD_LEFT", "RIGHT" to "KEYCODE_DPAD_RIGHT",
-        "A" to "KEYCODE_BUTTON_A", "B" to "KEYCODE_BUTTON_B",
-        "X" to "KEYCODE_BUTTON_X", "Y" to "KEYCODE_BUTTON_Y",
-        "L" to "KEYCODE_BUTTON_L1", "R" to "KEYCODE_BUTTON_R1",
-        "START" to "KEYCODE_BUTTON_START", "SELECT" to "KEYCODE_BUTTON_SELECT",
+        "UP" to android.view.KeyEvent.KEYCODE_DPAD_UP, "DOWN" to android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+        "LEFT" to android.view.KeyEvent.KEYCODE_DPAD_LEFT, "RIGHT" to android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+        "A" to android.view.KeyEvent.KEYCODE_BUTTON_A, "B" to android.view.KeyEvent.KEYCODE_BUTTON_B,
+        "X" to android.view.KeyEvent.KEYCODE_BUTTON_X, "Y" to android.view.KeyEvent.KEYCODE_BUTTON_Y,
+        "L" to android.view.KeyEvent.KEYCODE_BUTTON_L1, "R" to android.view.KeyEvent.KEYCODE_BUTTON_R1,
+        "START" to android.view.KeyEvent.KEYCODE_BUTTON_START, "SELECT" to android.view.KeyEvent.KEYCODE_BUTTON_SELECT,
     )
 
     override fun serve(session: IHTTPSession): Response = when (session.uri) {
@@ -38,14 +38,17 @@ class RemoteServer(private val context: Context, port: Int = 8080) : NanoHTTPD(p
         }
         "/game" -> {
             val code = gameKeys[session.parameters["k"]?.firstOrNull()]
-            if (code == null) text(Response.Status.BAD_REQUEST, "bad key")
-            else {
-                val ok = when (session.parameters["a"]?.firstOrNull()) {
-                    "down" -> MonkeyInput.keyDown(context, code)
-                    "up" -> MonkeyInput.keyUp(context, code)
-                    else -> MonkeyInput.press(context, code)
+            if (code == null) {
+                text(Response.Status.BAD_REQUEST, "bad key")
+            } else if (!InputBus.active()) {
+                text(Response.Status.OK, "sem jogo")   // nenhum jogo aberto ainda
+            } else {
+                when (session.parameters["a"]?.firstOrNull()) {
+                    "down" -> InputBus.down(code)
+                    "up" -> InputBus.up(code)
+                    else -> { InputBus.down(code); InputBus.up(code) }
                 }
-                if (ok) text(Response.Status.OK, "ok") else text(Response.Status.INTERNAL_ERROR, "falhou")
+                text(Response.Status.OK, "ok")
             }
         }
         "/type" -> {

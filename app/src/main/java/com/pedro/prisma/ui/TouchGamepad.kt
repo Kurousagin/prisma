@@ -33,13 +33,16 @@ import com.swordfish.libretrodroid.GLRetroView
 
 private val CREAM = Color(0xFFF1ECDE)
 
-/** Controles touch sobre o jogo. Multitouch real: cada botão trata seu próprio dedo. */
+/** Controles touch adaptados a cada console. Multitouch real: cada botão trata seu próprio dedo. */
 @Composable
-fun TouchGamepad(retro: GLRetroView, onExit: () -> Unit) {
+fun TouchGamepad(retro: GLRetroView, system: String, onExit: () -> Unit) {
+    val hasLR = system == "Game Boy Advance" || system == "Super Nintendo"
+    val selLabel = if (system == "Mega Drive") "MODE" else "SELECT"
     Box(Modifier.fillMaxSize()) {
-        // ombros
-        Shoulder("L", KeyEvent.KEYCODE_BUTTON_L1, retro, Modifier.align(Alignment.TopStart).padding(14.dp, 10.dp))
-        Shoulder("R", KeyEvent.KEYCODE_BUTTON_R1, retro, Modifier.align(Alignment.TopEnd).padding(14.dp, 10.dp))
+        if (hasLR) {
+            Shoulder("L", KeyEvent.KEYCODE_BUTTON_L1, retro, Modifier.align(Alignment.TopStart).padding(14.dp, 10.dp))
+            Shoulder("R", KeyEvent.KEYCODE_BUTTON_R1, retro, Modifier.align(Alignment.TopEnd).padding(14.dp, 10.dp))
+        }
 
         // sair (volta pro detalhe; o save acontece no onPause)
         Box(
@@ -52,20 +55,35 @@ fun TouchGamepad(retro: GLRetroView, onExit: () -> Unit) {
         // D-pad (com diagonais)
         DPad(retro, Modifier.align(Alignment.BottomStart).padding(18.dp, 0.dp, 0.dp, 22.dp), 150.dp)
 
-        // botões de ação (A direita, B baixo, X cima, Y esquerda)
-        Box(Modifier.align(Alignment.BottomEnd).padding(0.dp, 0.dp, 18.dp, 22.dp).size(168.dp)) {
-            Hold("X", KeyEvent.KEYCODE_BUTTON_X, retro, Modifier.align(Alignment.TopCenter), 56.dp)
-            Hold("Y", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier.align(Alignment.CenterStart), 56.dp)
-            Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier.align(Alignment.CenterEnd), 56.dp)
-            Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier.align(Alignment.BottomCenter), 56.dp)
+        // botões de ação — layout por console
+        Box(Modifier.align(Alignment.BottomEnd).padding(0.dp, 0.dp, 18.dp, 22.dp)) {
+            when (system) {
+                "Super Nintendo" -> Box(Modifier.size(168.dp)) {
+                    Hold("X", KeyEvent.KEYCODE_BUTTON_X, retro, Modifier.align(Alignment.TopCenter), 56.dp)
+                    Hold("Y", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier.align(Alignment.CenterStart), 56.dp)
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier.align(Alignment.CenterEnd), 56.dp)
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier.align(Alignment.BottomCenter), 56.dp)
+                }
+                // Mega Drive: A=RetroPad Y, B=B, C=A (mapeamento do genesis_plus_gx)
+                "Mega Drive" -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier, 58.dp)
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 58.dp)
+                    Hold("C", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 58.dp)
+                }
+                // NES, Game Boy, Game Boy Advance: só B e A
+                else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 62.dp)
+                    Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 62.dp)
+                }
+            }
         }
 
-        // start / select
+        // start / select (ou start / mode no Mega Drive)
         Row(
             Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Pill("SELECT", KeyEvent.KEYCODE_BUTTON_SELECT, retro)
+            Pill(selLabel, KeyEvent.KEYCODE_BUTTON_SELECT, retro)
             Pill("START", KeyEvent.KEYCODE_BUTTON_START, retro)
         }
     }
