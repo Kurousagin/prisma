@@ -2,9 +2,13 @@
 
 ![Prisma](docs/img/feature.png)
 
-Emulador de clássicos retrô para Android, com **cara de console**: biblioteca com capas
-automáticas, animação de cartucho entrando no console ao iniciar o jogo, e foco em
-**rodar liso em celulares de hardware modesto**.
+Um emulador retro para Android com foco na performance e na imersão, transformando o seu smartphone numa verdadeira consola clássica.
+
+**Principais Funcionalidades:**
+
+* **Experiência de Consola:** Interface imersiva com animações nostálgicas, incluindo o efeito visual de inserção do cartucho ao iniciar um jogo.
+* **Biblioteca Inteligente:** Organização automática dos seus jogos, com transferência e sincronização de capas.
+* **Alta Performance:** Arquitetura otimizada para garantir que os jogos corram de forma fluida (sem *stuttering*), com especial foco em dispositivos de entrada e hardware modesto.
 
 Grátis, sem anúncios, sem rastreio e **código aberto (GPLv3)**.
 Você traz suas próprias ROMs — o Prisma não distribui jogos nem BIOS.
