@@ -29,14 +29,16 @@ class GameActivity : ComponentActivity() {
         val romUri = intent.getStringExtra("rom")?.let { android.net.Uri.parse(it) } ?: return finish()
         key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
         stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "$key.state") }
+        // ROM dentro de .zip: extrai os bytes da entry (null = extração falhou)
+        val zipEntry = intent.getStringExtra("zipEntry")
+        val zipBytes = if (zipEntry != null) (com.pedro.prisma.ui.Games.extractZip(this, romUri, zipEntry) ?: return finish()) else null
 
         val data = GLRetroViewData(this).apply {
             coreFilePath = "${applicationInfo.nativeLibraryDir}/$core"
-            if (romUri.scheme == "file") {
-                gameFilePath = romUri.path
-            } else {
-                // ROM de pasta escolhida (SAF): carrega os bytes
-                gameFileBytes = contentResolver.openInputStream(romUri)!!.use { it.readBytes() }
+            when {
+                zipBytes != null -> gameFileBytes = zipBytes
+                romUri.scheme == "file" -> gameFilePath = romUri.path
+                else -> gameFileBytes = contentResolver.openInputStream(romUri)!!.use { it.readBytes() }  // SAF
             }
             systemDirectory = filesDir.absolutePath
             savesDirectory = filesDir.absolutePath
