@@ -30,6 +30,7 @@ class RemoteServer(private val context: Context, port: Int = 8080) : NanoHTTPD(p
 
     override fun serve(session: IHTTPSession): Response = when (session.uri) {
         "/" -> html()
+        "/system" -> text(Response.Status.OK, InputBus.system)   // console do jogo aberto (pro QR adaptar)
         "/key" -> {
             val code = keys[session.parameters["k"]?.firstOrNull()]
             if (code == null) text(Response.Status.BAD_REQUEST, "bad key")

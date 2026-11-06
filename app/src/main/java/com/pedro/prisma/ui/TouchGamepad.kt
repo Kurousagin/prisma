@@ -35,7 +35,7 @@ private val CREAM = Color(0xFFF1ECDE)
 
 /** Controles touch adaptados a cada console. Multitouch real: cada botão trata seu próprio dedo. */
 @Composable
-fun TouchGamepad(retro: GLRetroView, system: String, onExit: () -> Unit) {
+fun TouchGamepad(retro: GLRetroView, system: String) {
     val hasLR = system == "Game Boy Advance" || system == "Super Nintendo"
     val selLabel = if (system == "Mega Drive") "MODE" else "SELECT"
     Box(Modifier.fillMaxSize()) {
@@ -43,14 +43,6 @@ fun TouchGamepad(retro: GLRetroView, system: String, onExit: () -> Unit) {
             Shoulder("L", KeyEvent.KEYCODE_BUTTON_L1, retro, Modifier.align(Alignment.TopStart).padding(14.dp, 10.dp))
             Shoulder("R", KeyEvent.KEYCODE_BUTTON_R1, retro, Modifier.align(Alignment.TopEnd).padding(14.dp, 10.dp))
         }
-
-        // sair (volta pro detalhe; o save acontece no onPause)
-        Box(
-            Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(40.dp).clip(CircleShape)
-                .background(Color.Black.copy(alpha = .35f)).border(1.dp, Color.White.copy(alpha = .25f), CircleShape)
-                .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); onExit() } },
-            contentAlignment = Alignment.Center,
-        ) { Text("✕", color = Color.White.copy(alpha = .8f), fontSize = 17.sp) }
 
         // D-pad (com diagonais)
         DPad(retro, Modifier.align(Alignment.BottomStart).padding(18.dp, 0.dp, 0.dp, 22.dp), 150.dp)
