@@ -26,8 +26,11 @@ NES · Super Nintendo · Game Boy / Color · Game Boy Advance · Mega Drive / Ge
 
 - **Capas automáticas** — a biblioteca monta sozinha e baixa a arte dos jogos.
 - **Continua sozinho** — salva o estado ao sair e você volta de onde parou.
-- **Animação de abertura** — o cartucho entra no console de verdade do jogo (dá pra desativar no menu).
-- **Controles na tela** adaptados a cada console (D-pad, A/B/X/Y, L/R, Start/Select).
+- **Save states com slots** — vários saves por jogo, com miniatura e data; pelo menu de pausa dá pra salvar, carregar e reiniciar.
+- **Animação de abertura** — o cartucho entra no console de verdade do jogo (dá pra desativar nos Ajustes).
+- **Filtro de vídeo** — Nítido, CRT (tubão) ou LCD, à sua escolha.
+- **Controles na tela** adaptados e tematizados por console; dá pra ocultar pra jogar com a tela limpa.
+- **Controle físico** — gamepads Bluetooth ou USB (o controle na tela some sozinho quando detecta um).
 - **Controle pelo celular** — use um segundo aparelho como controle, via QR, na mesma rede Wi-Fi.
 - **Trocar capa** manualmente por uma imagem da galeria.
 - **Desempenho** — cores leves e ajustes por core (ex.: idle optimization no GBA) para rodar liso.
