@@ -102,16 +102,18 @@ class GameActivity : ComponentActivity() {
         k == KeyEvent.KEYCODE_BUTTON_START || k == KeyEvent.KEYCODE_BUTTON_SELECT ||
         k == KeyEvent.KEYCODE_BUTTON_THUMBL || k == KeyEvent.KEYCODE_BUTTON_THUMBR
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (!isGameKey(keyCode)) return super.onKeyDown(keyCode, event)
-        retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, keyCode)
-        return true
-    }
-
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (!isGameKey(keyCode)) return super.onKeyUp(keyCode, event)
-        retroView.sendKeyEvent(KeyEvent.ACTION_UP, keyCode)
-        return true
+    // Gamepad físico (BLE ou com fio): captura as teclas antes do Compose (que senão
+    // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        if (::retroView.isInitialized && isGameKey(code)) {
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, code)
+                KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, code)
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
