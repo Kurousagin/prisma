@@ -106,7 +106,8 @@ fun PrismaApp(remoteUrl: String?) {
                     when (tab) {
                         "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
                         "lib" -> LibraryTab(list, libFilter, { libFilter = it }, onOpen = { detail = it })
-                        else -> SupportTab(pickFolder)
+                        "config" -> SettingsTab(pickFolder)
+                        else -> SupportTab()
                     }
                 }
                 BottomNav(tab) { tab = it }
@@ -462,7 +463,7 @@ private fun PickFolderButton(onClick: () -> Unit) {
 
 /* ---------------- Apoiar (Pix) ---------------- */
 @Composable
-private fun SupportTab(onPickFolder: () -> Unit) {
+private fun SupportTab() {
     val clip = LocalClipboardManager.current
     val ctx = LocalContext.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -501,7 +502,14 @@ private fun SupportTab(onPickFolder: () -> Unit) {
             Text("Você traz suas próprias ROMs. O Prisma não distribui jogos.",
                 color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun SettingsTab(onPickFolder: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+        AppBar("Ajustes")
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
                 .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
@@ -512,8 +520,31 @@ private fun SupportTab(onPickFolder: () -> Unit) {
             PickFolderButton(onPickFolder)
         }
         Spacer(Modifier.height(14.dp))
+        ShaderSettingCard()
+        Spacer(Modifier.height(14.dp))
         AnimSettingCard()
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ShaderSettingCard() {
+    val ctx = LocalContext.current
+    var mode by remember { mutableStateOf(ShaderPrefs.mode(ctx)) }
+    val pick = { m: String -> mode = m; ShaderPrefs.setMode(ctx, m) }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+    ) {
+        Text("Filtro de vídeo", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Como a imagem aparece. Vale ao abrir o jogo.",
+            color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip("Nítido", mode == ShaderPrefs.SHARP) { pick(ShaderPrefs.SHARP) }
+            FilterChip("Suave", mode == ShaderPrefs.SMOOTH) { pick(ShaderPrefs.SMOOTH) }
+            FilterChip("CRT", mode == ShaderPrefs.CRT) { pick(ShaderPrefs.CRT) }
+            FilterChip("LCD", mode == ShaderPrefs.LCD) { pick(ShaderPrefs.LCD) }
+        }
     }
 }
 
@@ -574,6 +605,7 @@ private fun BottomNav(tab: String, onTab: (String) -> Unit) {
     ) {
         NavItem("⌂", "Início", tab == "home") { onTab("home") }
         NavItem("▦", "Biblioteca", tab == "lib") { onTab("lib") }
+        NavItem("⚙", "Ajustes", tab == "config") { onTab("config") }
         NavItem("💜", "Apoiar", tab == "support") { onTab("support") }
     }
 }

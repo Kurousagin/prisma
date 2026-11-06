@@ -9,6 +9,7 @@ import com.swordfish.libretrodroid.GLRetroView
  */
 object InputBus {
     @Volatile var view: GLRetroView? = null
+    @Volatile var system: String = ""   // console do jogo aberto (pro controle QR se adaptar)
 
     fun down(code: Int) { view?.sendKeyEvent(KeyEvent.ACTION_DOWN, code) }
     fun up(code: Int) { view?.sendKeyEvent(KeyEvent.ACTION_UP, code) }
