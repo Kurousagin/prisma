@@ -30,9 +30,14 @@ fun systemColor(sys: String): Color = when (sys) {
 }
 
 private fun darken(c: Color, f: Float) = Color(c.red * f, c.green * f, c.blue * f, 1f)
+private fun lighten(c: Color, f: Float = 0.38f) =
+    Color(c.red + (1f - c.red) * f, c.green + (1f - c.green) * f, c.blue + (1f - c.blue) * f, 1f)
 
 /** Gradiente de "boxart" quando não há capa real. */
 fun coverGradient(sys: String): List<Color> {
     val c = systemColor(sys)
     return listOf(darken(c, 0.85f), darken(c, 0.28f))
 }
+
+/** Gradiente de acento na cor do console (botões da tela de detalhe). */
+fun consoleGrad(sys: String): Brush = Brush.linearGradient(listOf(systemColor(sys), lighten(systemColor(sys))))
