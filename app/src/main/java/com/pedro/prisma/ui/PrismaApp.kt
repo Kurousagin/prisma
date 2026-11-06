@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,19 +73,12 @@ fun PrismaApp(remoteUrl: String?) {
     var reload by remember { mutableStateOf(0) }
 
     var games by remember { mutableStateOf<List<GameEntry>?>(null) }
-    var coverDone by remember { mutableStateOf(0) }
-    var coverTotal by remember { mutableStateOf(0) }
 
     LaunchedEffect(reload) {
-        games = null; coverDone = 0; coverTotal = 0
-        val list = withContext(Dispatchers.IO) { Games.load(ctx) }
-        val vis = list.take(24)                       // pré-baixa as capas visíveis com progresso
-        coverTotal = vis.size
-        vis.forEach { g ->
-            withContext(Dispatchers.IO) { runCatching { Covers.load(ctx, g) } }
-            coverDone++
-        }
-        games = list
+        games = null
+        // abre a biblioteca assim que o scan termina; cada card baixa sua capa
+        // sozinho (lazy, em paralelo), sem travar a abertura com downloads em série.
+        games = withContext(Dispatchers.IO) { Games.load(ctx) }
     }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -94,7 +88,7 @@ fun PrismaApp(remoteUrl: String?) {
 
     val list = games
     if (list == null) {
-        OnboardingScan(coverDone, coverTotal)
+        OnboardingScan()
         return
     }
 
@@ -122,7 +116,7 @@ fun PrismaApp(remoteUrl: String?) {
 }
 
 @Composable
-private fun OnboardingScan(done: Int, total: Int) {
+private fun OnboardingScan() {
     Column(
         Modifier.fillMaxSize().background(P.bg).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -137,16 +131,12 @@ private fun OnboardingScan(done: Int, total: Int) {
         Spacer(Modifier.height(14.dp))
         Text("Sua jornada nostálgica começa aqui.", color = P.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
-        Text("Encontrando ROMs e baixando as capas…", color = P.dim, fontSize = 13.sp, textAlign = TextAlign.Center)
+        Text("Procurando seus jogos…", color = P.dim, fontSize = 13.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(18.dp))
-        Box(Modifier.fillMaxWidth(0.82f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(P.card)) {
-            Box(
-                Modifier.fillMaxWidth(if (total > 0) done / total.toFloat() else 0.25f).height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)).background(P.grad),
-            )
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(if (total > 0) "Capas $done/$total" else "Procurando jogos…", color = P.faint, fontSize = 12.sp)
+        androidx.compose.material3.LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(0.82f).height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = P.p2, trackColor = P.card,
+        )
     }
 }
 
@@ -305,14 +295,25 @@ private fun ConsoleGlyph() {
 /* ---------------- Biblioteca ---------------- */
 @Composable
 private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String) -> Unit, onOpen: (GameEntry) -> Unit) {
+    var query by remember { mutableStateOf("") }
     val systems = listOf("Todos") + Games.systems.map { it.label }
-    val shown = if (filter == "Todos") games else games.filter { it.system.label == filter }
+    val q = query.trim()
+    val shown = games.filter {
+        (filter == "Todos" || it.system.label == filter) &&
+            (q.isEmpty() || it.title.contains(q, ignoreCase = true))
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         AppBar("Biblioteca")
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        SearchField(query) { query = it }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             systems.forEach { s -> FilterChip(s, s == filter) { onFilter(s) } }
         }
-        LazyVerticalGrid(
+        Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp,
+            modifier = Modifier.padding(bottom = 8.dp))
+        if (shown.isEmpty()) {
+            Text("Nenhum jogo encontrado.", color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 32.dp))
+        } else LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(11.dp),
             verticalArrangement = Arrangement.spacedBy(11.dp),
@@ -321,6 +322,30 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
             items(shown, key = { it.uri.toString() }) { g ->
                 BoxArt(g, Modifier.aspectRatio(3f / 3.9f).clickable { onOpen(g) })
             }
+        }
+    }
+}
+
+@Composable
+private fun SearchField(query: String, onQuery: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("🔍", fontSize = 14.sp)
+        Spacer(Modifier.width(8.dp))
+        Box(Modifier.weight(1f)) {
+            if (query.isEmpty()) Text("Buscar jogo…", color = P.faint, fontSize = 14.sp)
+            BasicTextField(
+                value = query, onValueChange = onQuery, singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(color = P.ink, fontSize = 14.sp),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(P.p2),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (query.isNotEmpty()) {
+            Text("✕", color = P.dim, fontSize = 14.sp, modifier = Modifier.clickable { onQuery("") }.padding(start = 6.dp))
         }
     }
 }
