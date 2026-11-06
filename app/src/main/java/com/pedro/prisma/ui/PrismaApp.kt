@@ -399,9 +399,11 @@ private fun AboutLine(t: String) {
 @Composable
 private fun AppBar(title: String) {
     Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(P.grad), contentAlignment = Alignment.Center) {
-            Text("🎮", fontSize = 13.sp)
-        }
+        Image(
+            painter = androidx.compose.ui.res.painterResource(com.pedro.prisma.R.mipmap.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)),
+        )
         Spacer(Modifier.width(8.dp))
         Text(title, color = P.ink, fontSize = 19.sp, fontWeight = FontWeight.Bold)
     }
