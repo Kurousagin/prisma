@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.swordfish.libretrodroid.GLRetroView
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,11 +51,44 @@ import java.util.Locale
 fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: () -> Unit) {
     var showSlots by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
+    var ff by remember { mutableStateOf(false) }          // avançar (fast-forward)
+    var rewinding by remember { mutableStateOf(false) }    // rebobinar (segurando)
     // se já tem um gamepad conectado, começa com o controle touch oculto
     var controls by remember { mutableStateOf(!hasGamepad()) }
+    val rewindBuf = remember { ArrayDeque<ByteArray>() }
 
-    fun resume() { runCatching { retro.frameSpeed = 1; retro.audioEnabled = true }; paused = false }
-    fun pause() { runCatching { retro.frameSpeed = 0; retro.audioEnabled = false }; paused = true }
+    fun applySpeed() {
+        runCatching {
+            retro.frameSpeed = if (paused || rewinding) 0 else if (ff) 3 else 1
+            retro.audioEnabled = !(paused || rewinding || ff)   // mudo ao avançar (som acelerado fica ruim)
+        }
+    }
+    fun pause() { paused = true; applySpeed() }
+    fun resume() { paused = false; applySpeed() }
+
+    // captura estados p/ rebobinar: a cada 0,5s, buffer curto (não pesa em hardware fraco)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            if (!paused && !rewinding) runCatching {
+                rewindBuf.addLast(retro.serializeState())
+                while (rewindBuf.size > 24) rewindBuf.removeFirst()   // ~12s de rebobinar
+            }
+        }
+    }
+    // rebobina enquanto o ⏪ está segurado
+    LaunchedEffect(rewinding) {
+        if (rewinding) {
+            runCatching { retro.frameSpeed = 0; retro.audioEnabled = false }
+            while (rewindBuf.size > 1) {
+                delay(70)
+                rewindBuf.removeLast()
+                rewindBuf.lastOrNull()?.let { s -> runCatching { retro.unserializeState(s) } }
+            }
+        } else {
+            applySpeed()
+        }
+    }
 
     Box(Modifier.fillMaxSize()) {
         if (controls) TouchGamepad(retro, system)
@@ -58,6 +96,8 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: ()
             Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            TopHoldBtn("⏪", onDown = { rewinding = true }, onUp = { rewinding = false })
+            TopBtn("⏩", active = ff) { ff = !ff; applySpeed() }
             TopBtn("⏸") { pause() }
             TopBtn(if (controls) "🚫" else "🎮") { controls = !controls }  // oculta/mostra o controle touch
         }
@@ -118,10 +158,30 @@ private fun hasGamepad(): Boolean {
 }
 
 @Composable
-private fun TopBtn(label: String, onClick: () -> Unit) {
+private fun TopBtn(label: String, active: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = .35f))
+        Modifier.size(40.dp).clip(CircleShape)
+            .background(if (active) P.p1.copy(alpha = .85f) else Color.Black.copy(alpha = .35f))
             .border(1.dp, Color.White.copy(alpha = .25f), CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, fontSize = 15.sp, color = Color.White.copy(alpha = .85f)) }
+}
+
+@Composable
+private fun TopHoldBtn(label: String, onDown: () -> Unit, onUp: () -> Unit) {
+    var down by remember { mutableStateOf(false) }
+    Box(
+        Modifier.size(40.dp).clip(CircleShape)
+            .background(if (down) P.p1.copy(alpha = .85f) else Color.Black.copy(alpha = .35f))
+            .border(1.dp, Color.White.copy(alpha = .25f), CircleShape)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    down = true; onDown()
+                    do { val e = awaitPointerEvent() } while (e.changes.any { it.pressed })
+                    down = false; onUp()
+                }
+            },
         contentAlignment = Alignment.Center,
     ) { Text(label, fontSize = 15.sp, color = Color.White.copy(alpha = .85f)) }
 }
