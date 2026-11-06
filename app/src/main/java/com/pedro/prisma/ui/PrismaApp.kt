@@ -164,9 +164,9 @@ private fun LogoHeader() {
 
 /* ---------------- Boxart ---------------- */
 @Composable
-fun BoxArt(game: GameEntry, modifier: Modifier = Modifier) {
+fun BoxArt(game: GameEntry, modifier: Modifier = Modifier, reloadKey: Any = Unit) {
     val ctx = LocalContext.current
-    val cover by produceState<ImageBitmap?>(initialValue = null, game.uri.toString()) {
+    val cover by produceState<ImageBitmap?>(initialValue = null, game.uri.toString(), reloadKey) {
         value = withContext(Dispatchers.IO) { Covers.load(ctx, game)?.asImageBitmap() }
     }
     Box(modifier.clip(RoundedCornerShape(13.dp)).background(Brush.verticalGradient(coverGradient(game.system.label)))) {
@@ -340,9 +340,16 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val resumes = inProgress(ctx, g)
     var showQr by remember { mutableStateOf(false) }
+    var coverV by remember { mutableStateOf(0) }
+    val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val bytes = runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            if (bytes != null) { Covers.saveUserCover(ctx, g, bytes); coverV++ }
+        }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(Modifier.fillMaxWidth().height(200.dp)) {
-            BoxArt(g, Modifier.fillMaxSize())
+            BoxArt(g, Modifier.fillMaxSize(), coverV)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, P.bg))))
             Box(
                 Modifier.padding(16.dp).size(34.dp).clip(RoundedCornerShape(50))
@@ -352,7 +359,7 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         }
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                BoxArt(g, Modifier.width(92.dp).height(112.dp))
+                BoxArt(g, Modifier.width(92.dp).height(112.dp), coverV)
                 Column {
                     Text(g.title, color = P.ink, fontSize = 21.sp, fontWeight = FontWeight.Bold, lineHeight = 23.sp)
                     Text(g.system.label, color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
@@ -374,6 +381,7 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
             Section("Extras")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ExtraTile("🎮", "Controle\npelo celular", Modifier.weight(1f)) { showQr = true }
+                ExtraTile("🖼️", "Trocar\ncapa", Modifier.weight(1f)) { pickCover.launch("image/*") }
                 ExtraTile("🏆", "Conquistas\nem breve", Modifier.weight(1f)) {}
                 ExtraTile("☁️", "Backup\nem breve", Modifier.weight(1f)) {}
             }
@@ -478,7 +486,29 @@ private fun SupportTab(onPickFolder: () -> Unit) {
                 color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
             PickFolderButton(onPickFolder)
         }
+        Spacer(Modifier.height(14.dp))
+        AnimSettingCard()
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun AnimSettingCard() {
+    val ctx = LocalContext.current
+    var mode by remember { mutableStateOf(IntroPrefs.mode(ctx)) }
+    val pick = { m: String -> mode = m; IntroPrefs.setMode(ctx, m) }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+    ) {
+        Text("Animação de abertura", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("O cartucho entrando no console ao iniciar um jogo.",
+            color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip("Sempre", mode == IntroPrefs.ALWAYS) { pick(IntroPrefs.ALWAYS) }
+            FilterChip("Só a 1ª vez", mode == IntroPrefs.ONCE) { pick(IntroPrefs.ONCE) }
+            FilterChip("Desativada", mode == IntroPrefs.OFF) { pick(IntroPrefs.OFF) }
+        }
     }
 }
 
