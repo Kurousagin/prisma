@@ -82,3 +82,8 @@ use apenas jogos que você tem o direito de usar.
 
 Grátis pra sempre. Se te ajudou, um Pix mantém o projeto vivo — a chave (Pix aleatória) está
 na aba **Apoiar** do app.
+
+## Contato
+
+Dúvidas, bugs ou sugestões: [prismaemulator@gmail.com](mailto:prismaemulator@gmail.com)
+ou pelas [Issues](https://github.com/Kurousagin/prisma/issues).
