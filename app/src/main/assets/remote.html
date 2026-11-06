@@ -11,55 +11,95 @@
   html,body{margin:0;height:100%}
   body{background:linear-gradient(160deg,#2A1B6B,#1C2A5A 60%,#120A28);color:var(--tx);
        font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-       display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 14px 26px}
-  .top{display:flex;align-items:center;gap:10px;width:100%;max-width:460px}
+       display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 12px 22px}
+  .top{display:flex;align-items:center;gap:10px;width:100%;max-width:540px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--ac)}
   .brand{font-size:12px;letter-spacing:.14em;color:var(--dim);font-weight:700}
   .flash{margin-left:auto;font-size:11px;color:#FF7AB6;opacity:0;transition:opacity .2s}
-  .consoles{display:flex;gap:7px;width:100%;max-width:460px;overflow-x:auto;padding-bottom:2px}
+  .consoles{display:flex;gap:7px;width:100%;max-width:540px;overflow-x:auto;padding-bottom:2px}
   .consoles::-webkit-scrollbar{height:0}
   .cchip{flex:0 0 auto;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surf);
          color:var(--dim);font-size:13px;font-weight:700;cursor:pointer}
   .cchip.on{background:var(--ac);color:#1A1433;border-color:transparent}
-  .gamepad{width:100%;max-width:460px;display:flex;flex-direction:column;gap:16px;flex:1;justify-content:center}
-  .gbtn{background:var(--surf);border:1px solid var(--line);color:var(--tx);border-radius:16px;font-weight:700;
-        cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none}
-  .gbtn.on{background:var(--ac);color:#1A1433;border-color:transparent;transform:scale(.95)}
+
+  /* ===== casco do controle (tematizado por console) ===== */
+  .shell{width:100%;max-width:540px;flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center;
+         padding:20px 16px;border-radius:26px;box-shadow:0 16px 44px -18px #000, inset 0 2px 0 rgba(255,255,255,.07);
+         background:linear-gradient(180deg,#2a2740,#1a1830)}
+  .gbtn{border:1px solid var(--line);color:var(--tx);background:rgba(255,255,255,.1);border-radius:16px;font-weight:800;
+        cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none;transition:transform .05s}
+  .gbtn.on{filter:brightness(1.35);transform:scale(.93)}
   .shoulders{display:flex;gap:12px}
   .shoulders:empty{display:none}
-  .shoulders .gbtn{flex:1;padding:16px 0;font-size:16px}
+  .shoulders .gbtn{flex:1;padding:14px 0;font-size:15px;border-radius:12px 12px 4px 4px}
   .main{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .dpad{display:grid;grid-template:repeat(3,54px)/repeat(3,54px);gap:6px}
-  .dpad .gbtn{font-size:22px}
-  .gu{grid-area:1/2}.gl{grid-area:2/1}.gr{grid-area:2/3}.gd{grid-area:3/2}
-  .face{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+  .dpad{display:grid;grid-template:repeat(3,52px)/repeat(3,52px);gap:5px}
+  .dpad .gbtn{font-size:20px;background:#2a2a30;color:#f3eeff;border-color:rgba(0,0,0,.4)}
+  .gu{grid-area:1/2;border-radius:10px 10px 2px 2px}.gl{grid-area:2/1;border-radius:10px 2px 2px 10px}
+  .gr{grid-area:2/3;border-radius:2px 10px 10px 2px}.gd{grid-area:3/2;border-radius:2px 2px 10px 10px}
+  .dpad .mid{grid-area:2/2;background:#2a2a30}
+  .face{display:flex;gap:12px;align-items:center;justify-content:flex-end}
   .face .rbtn{width:62px;height:62px;border-radius:50%;font-size:20px}
-  .face.diamond{display:grid;grid-template:repeat(3,54px)/repeat(3,54px);gap:6px}
-  .face.diamond .gbtn{width:54px;height:54px;border-radius:50%;font-size:20px}
+  .face.diamond{display:grid;grid-template:repeat(3,52px)/repeat(3,52px);gap:6px}
+  .face.diamond .gbtn{width:52px;height:52px;border-radius:50%;font-size:19px}
   .face.diamond .fx{grid-area:1/2}.face.diamond .fy{grid-area:2/1}.face.diamond .fa{grid-area:2/3}.face.diamond .fb{grid-area:3/2}
-  .startsel{display:flex;gap:14px;justify-content:center}
-  .startsel .gbtn{padding:12px 22px;font-size:13px;border-radius:999px}
+  .startsel{display:flex;gap:16px;justify-content:center}
+  .startsel .gbtn{padding:10px 20px;font-size:12px;border-radius:999px;background:#2a2a30}
   .hint{font-size:11px;color:var(--dim);text-align:center}
+
+  /* --- NES: cinza, cruz preta, A/B vermelhos, start/select pretos retangulares --- */
+  .shell.nes{background:linear-gradient(180deg,#dcd9d0,#bdbab0);border-radius:12px}
+  .shell.nes .rbtn{background:#c23b2e;border-color:#7d241b;color:#fff}
+  .shell.nes .startsel .gbtn{background:#2a2a30;color:#eee;border-radius:7px;padding:8px 18px}
+  /* --- SNES: cinza arredondado, losango colorido (cores do Super Famicom) --- */
+  .shell.snes{background:linear-gradient(180deg,#d2cec5,#b2aea3);border-radius:46px}
+  .shell.snes .fx{background:#2f6ae0;color:#fff;border-color:transparent}
+  .shell.snes .fy{background:#36b06a;color:#fff;border-color:transparent}
+  .shell.snes .fa{background:#e0485a;color:#fff;border-color:transparent}
+  .shell.snes .fb{background:#e8b84a;color:#3a2a00;border-color:transparent}
+  .shell.snes .startsel .gbtn{background:#6b5bbf;color:#fff}
+  .shell.snes .shoulders .gbtn{background:#cfcbc2;color:#2a2433;border-color:rgba(0,0,0,.2)}
+  /* --- Mega Drive: preto arredondado, A/B/C escuros em arco --- */
+  .shell.md{background:linear-gradient(180deg,#2a2a30,#121216);border-radius:52px}
+  .shell.md .rbtn{background:#33333c;color:#fff;border:1px solid rgba(255,255,255,.18)}
+  .shell.md .face .rbtn:nth-child(1){transform:translateY(18px)}
+  .shell.md .face .rbtn:nth-child(3){transform:translateY(-18px)}
+  .shell.md .startsel .gbtn{background:#33333c;color:#fff}
+  /* --- Game Boy: cinza-oliva, A/B vinho na diagonal --- */
+  .shell.gb{background:linear-gradient(180deg,#bcbeb3,#9a9c90);border-radius:16px 16px 16px 40px}
+  .shell.gb .rbtn{background:#8e2b4a;color:#fff;border-color:#5a1830}
+  .shell.gb .face .rbtn:nth-child(1){transform:translateY(16px)}
+  .shell.gb .face .rbtn:nth-child(2){transform:translateY(-16px)}
+  .shell.gb .startsel .gbtn{background:#6f7266;color:#fff;transform:rotate(-24deg)}
+  /* --- GBA: roxo, botões escuros, L/R no topo --- */
+  .shell.gba{background:linear-gradient(180deg,#5546c4,#3a2f93);border-radius:46px}
+  .shell.gba .rbtn{background:#241d4a;color:#fff;border-color:transparent}
+  .shell.gba .startsel .gbtn{background:#241d4a;color:#fff}
+  .shell.gba .shoulders .gbtn{background:#4a3cae;color:#fff;border-color:transparent}
+  .shell.gba .dpad .gbtn{background:#241d4a}
+
   @media (orientation:landscape){
     body{padding:6px 16px;gap:8px;overflow:hidden}
     .brand,.hint{display:none}
-    .gamepad{max-width:none}
+    .shell{max-width:none;padding:12px 20px}
     .main{padding:0 2vw}
-    .dpad{grid-template:repeat(3,min(16vh,88px))/repeat(3,min(16vh,88px))}
-    .face.diamond{grid-template:repeat(3,min(16vh,88px))/repeat(3,min(16vh,88px))}
-    .face .rbtn{width:min(17vh,82px);height:min(17vh,82px)}
+    .dpad{grid-template:repeat(3,min(15vh,80px))/repeat(3,min(15vh,80px))}
+    .face.diamond{grid-template:repeat(3,min(15vh,80px))/repeat(3,min(15vh,80px))}
+    .face .rbtn{width:min(16vh,76px);height:min(16vh,76px)}
   }
 </style>
 </head>
 <body>
   <div class="top"><span class="dot"></span><span class="brand">PRISMA · CONTROLE</span><span class="flash" id="flash">sem conexão</span></div>
   <div class="consoles" id="consoles"></div>
-  <div class="gamepad">
+
+  <div class="shell" id="shell">
     <div class="shoulders" id="shoulders"></div>
     <div class="main">
       <div class="dpad">
         <button class="gbtn gu" data-g="UP">▲</button>
         <button class="gbtn gl" data-g="LEFT">◀</button>
+        <div class="mid"></div>
         <button class="gbtn gr" data-g="RIGHT">▶</button>
         <button class="gbtn gd" data-g="DOWN">▼</button>
       </div>
@@ -84,19 +124,22 @@
   }
   function bindAll(){ document.querySelectorAll('[data-g]').forEach(bind); }
 
-  // layout por console: face = [rótulo, código enviado], ombros L/R, rótulo do Select
+  var CLS={'NES':'nes','Super Nintendo':'snes','Game Boy':'gb','Game Boy Advance':'gba','Mega Drive':'md'};
+  // face = [rótulo, código enviado]; lr = ombros; sel = rótulo do Select
   var LAYOUTS = {
     'NES':              {face:[['B','B'],['A','A']], lr:false, sel:'SELECT'},
     'Game Boy':         {face:[['B','B'],['A','A']], lr:false, sel:'SELECT'},
     'Game Boy Advance': {face:[['B','B'],['A','A']], lr:true,  sel:'SELECT'},
     'Super Nintendo':   {face:'diamond',             lr:true,  sel:'SELECT'},
-    // Mega Drive: A/B/C mapeiam p/ Y/B/A (genesis_plus_gx); Mode = Select
+    // Mega Drive: A/B/C -> Y/B/A (genesis_plus_gx); Mode = Select
     'Mega Drive':       {face:[['A','Y'],['B','B'],['C','A']], lr:false, sel:'MODE'}
   };
-  var faceEl=document.getElementById('face'), shEl=document.getElementById('shoulders'), ssEl=document.getElementById('startsel');
+  var shell=document.getElementById('shell'), faceEl=document.getElementById('face'),
+      shEl=document.getElementById('shoulders'), ssEl=document.getElementById('startsel');
 
   function render(sys){
     var L = LAYOUTS[sys] || LAYOUTS['Super Nintendo'];
+    shell.className = 'shell ' + (CLS[sys] || 'snes');
     if(L.face==='diamond'){
       faceEl.className='face diamond';
       faceEl.innerHTML='<button class="gbtn fx" data-g="X">X</button><button class="gbtn fy" data-g="Y">Y</button>'+
@@ -111,7 +154,6 @@
     document.querySelectorAll('.cchip').forEach(function(c){ c.classList.toggle('on', c.dataset.sys===sys); });
   }
 
-  // chips de console (seletor manual)
   var SYS=['NES','Super Nintendo','Game Boy','Game Boy Advance','Mega Drive'];
   var SHORT={'NES':'NES','Super Nintendo':'SNES','Game Boy':'GB','Game Boy Advance':'GBA','Mega Drive':'Mega Drive'};
   var cEl=document.getElementById('consoles'), manual=false;
@@ -120,9 +162,8 @@
     b.onclick=function(){ manual=true; render(s); }; cEl.appendChild(b);
   });
 
-  render('Super Nintendo');   // padrão até saber o jogo aberto
+  render('Super Nintendo');
 
-  // segue o console do jogo aberto (até você escolher um manualmente)
   function sync(){
     if(manual) return;
     fetch('/system').then(function(r){return r.text();}).then(function(t){
