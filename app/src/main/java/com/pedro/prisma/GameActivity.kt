@@ -19,6 +19,7 @@ class GameActivity : ComponentActivity() {
 
     private lateinit var retroView: GLRetroView
     private var stateFile: File? = null
+    private var system: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,10 +46,11 @@ class GameActivity : ComponentActivity() {
         lifecycle.addObserver(retroView)
         val root = FrameLayout(this)
         root.addView(retroView)
-        val system = intent.getStringExtra("system") ?: ""
+        system = intent.getStringExtra("system") ?: ""
         root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key) { finish() } } })
         setContentView(root)
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
+        com.pedro.prisma.remote.InputBus.system = system
 
         // animação "inserindo o cartucho no console" (por cima, enquanto o jogo carrega)
         if (com.pedro.prisma.ui.IntroPrefs.shouldShow(this, key)) {
@@ -67,6 +69,7 @@ class GameActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         com.pedro.prisma.remote.InputBus.view = retroView
+        com.pedro.prisma.remote.InputBus.system = system
 
         // continua de onde parou: restaura o estado quando o core terminar de carregar
         lifecycleScope.launch {
@@ -82,6 +85,7 @@ class GameActivity : ComponentActivity() {
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
     override fun onPause() {
         com.pedro.prisma.remote.InputBus.view = null
+        com.pedro.prisma.remote.InputBus.system = ""
         val f = stateFile
         if (f != null) runCatching { f.writeBytes(retroView.serializeState()) }
         super.onPause()

@@ -5,196 +5,132 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Prisma · Controle</title>
 <style>
-  :root{--bg:#160E2E;--surf:rgba(255,255,255,.08);--ac:#9B7CFF;--tx:#F3EEFF;--dim:#B9ADDA;--line:rgba(255,255,255,.16)}
+  :root{--surf:rgba(255,255,255,.08);--ac:#9B7CFF;--tx:#F3EEFF;--dim:#B9ADDA;--line:rgba(255,255,255,.16)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;
     user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
   html,body{margin:0;height:100%}
   body{background:linear-gradient(160deg,#2A1B6B,#1C2A5A 60%,#120A28);color:var(--tx);
        font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
-       display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 16px 30px}
-  .top{display:flex;align-items:center;gap:10px;width:100%;max-width:400px}
+       display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 14px 26px}
+  .top{display:flex;align-items:center;gap:10px;width:100%;max-width:460px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--ac)}
-  .brand{font-size:13px;letter-spacing:.14em;color:var(--dim);font-weight:600}
-  .tabs{display:flex;gap:8px;width:100%;max-width:400px}
-  .tab{flex:1;padding:12px 0;border-radius:14px;border:1px solid var(--line);background:var(--surf);
-       color:var(--dim);font-size:14px;font-weight:700;cursor:pointer}
-  .tab.on{background:var(--ac);color:#1A1433;border-color:transparent}
-  .view{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px}
-  /* ---- modo controle ---- */
-  .pad{position:relative;width:min(80vw,300px);aspect-ratio:1;border-radius:50%;
-       background:var(--surf);border:1.5px solid var(--line);backdrop-filter:blur(12px);
-       display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr)}
-  .pad button{background:none;border:none;color:var(--tx);font-size:26px;cursor:pointer;
-       display:flex;align-items:center;justify-content:center}
-  .pad button:active{color:var(--ac)}
-  .ok{grid-area:2/2;border-radius:50%;margin:14%;background:var(--ac);color:#1A1433;
-      font-weight:700;font-size:20px;box-shadow:0 8px 24px rgba(155,124,255,.4)}
-  .u{grid-area:1/2}.d{grid-area:3/2}.l{grid-area:2/1}.r{grid-area:2/3}
-  .row{display:flex;gap:12px;width:100%;max-width:400px}
-  .row button{flex:1;padding:16px 0;border-radius:16px;background:var(--surf);border:1px solid var(--line);
-       color:var(--tx);font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(12px)}
-  .row button:active{border-color:var(--ac);color:var(--ac)}
-  .row .pw:active{color:#FF7AB6;border-color:#FF7AB6}
-  .kb{width:100%;max-width:400px;border:1px solid var(--line);border-radius:18px;background:var(--surf);
-      backdrop-filter:blur(12px);padding:12px 14px}
-  .kb summary{font-size:14px;color:var(--tx);cursor:pointer;list-style:none;font-weight:600}
-  .kb input{width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);
-       background:rgba(0,0,0,.25);color:var(--tx);font-size:14px;user-select:text;-webkit-user-select:text}
-  .kb .srow{display:flex;gap:10px;margin-top:10px}
-  .kb .srow button{flex:1;padding:14px 0;border-radius:12px;border:0;background:var(--ac);color:#1A1433;font-weight:700;font-size:14px;cursor:pointer}
-  .kb .srow .sec{background:var(--surf);color:var(--tx);border:1px solid var(--line)}
-  .hint{font-size:11px;color:var(--dim);text-align:center}
-  .flash{position:fixed;top:8px;right:10px;font-size:11px;color:#FF7AB6;opacity:0;transition:opacity .2s}
-  /* ---- modo gamepad ---- */
-  #viewGame{gap:20px}
-  .shoulders{display:flex;gap:12px;width:100%;max-width:400px}
-  .gbtn{background:var(--surf);border:1px solid var(--line);color:var(--tx);border-radius:16px;
-        font-weight:700;cursor:pointer;backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center}
-  .gbtn.on{background:var(--ac);color:#1A1433;border-color:transparent;transform:scale(.96)}
+  .brand{font-size:12px;letter-spacing:.14em;color:var(--dim);font-weight:700}
+  .flash{margin-left:auto;font-size:11px;color:#FF7AB6;opacity:0;transition:opacity .2s}
+  .consoles{display:flex;gap:7px;width:100%;max-width:460px;overflow-x:auto;padding-bottom:2px}
+  .consoles::-webkit-scrollbar{height:0}
+  .cchip{flex:0 0 auto;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surf);
+         color:var(--dim);font-size:13px;font-weight:700;cursor:pointer}
+  .cchip.on{background:var(--ac);color:#1A1433;border-color:transparent}
+  .gamepad{width:100%;max-width:460px;display:flex;flex-direction:column;gap:16px;flex:1;justify-content:center}
+  .gbtn{background:var(--surf);border:1px solid var(--line);color:var(--tx);border-radius:16px;font-weight:700;
+        cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none}
+  .gbtn.on{background:var(--ac);color:#1A1433;border-color:transparent;transform:scale(.95)}
+  .shoulders{display:flex;gap:12px}
+  .shoulders:empty{display:none}
   .shoulders .gbtn{flex:1;padding:16px 0;font-size:16px}
-  .main{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:400px;gap:12px}
-  .grid3{display:grid;grid-template:repeat(3,56px)/repeat(3,56px);gap:6px}
-  .grid3 .gbtn{font-size:22px}
-  .dpad .gu{grid-area:1/2}.dpad .gl{grid-area:2/1}.dpad .gr{grid-area:2/3}.dpad .gd{grid-area:3/2}
-  .face .fx{grid-area:1/2;background:rgba(90,120,255,.22)}
-  .face .fy{grid-area:2/1;background:rgba(60,200,140,.22)}
-  .face .fa{grid-area:2/3;background:rgba(255,90,110,.22)}
-  .face .fb{grid-area:3/2;background:rgba(255,190,80,.22)}
-  .startsel{display:flex;gap:14px}
+  .main{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .dpad{display:grid;grid-template:repeat(3,54px)/repeat(3,54px);gap:6px}
+  .dpad .gbtn{font-size:22px}
+  .gu{grid-area:1/2}.gl{grid-area:2/1}.gr{grid-area:2/3}.gd{grid-area:3/2}
+  .face{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+  .face .rbtn{width:62px;height:62px;border-radius:50%;font-size:20px}
+  .face.diamond{display:grid;grid-template:repeat(3,54px)/repeat(3,54px);gap:6px}
+  .face.diamond .gbtn{width:54px;height:54px;border-radius:50%;font-size:20px}
+  .face.diamond .fx{grid-area:1/2}.face.diamond .fy{grid-area:2/1}.face.diamond .fa{grid-area:2/3}.face.diamond .fb{grid-area:3/2}
+  .startsel{display:flex;gap:14px;justify-content:center}
   .startsel .gbtn{padding:12px 22px;font-size:13px;border-radius:999px}
-  .gbtn{touch-action:none}
-  /* landscape: gamepad ocupa a tela toda, cara de app nativo */
+  .hint{font-size:11px;color:var(--dim);text-align:center}
   @media (orientation:landscape){
-    body{padding:6px 14px;gap:6px;height:100vh;height:100dvh;overflow:hidden;justify-content:flex-start}
-    .top{display:none}
-    .tabs{max-width:none}
-    #viewGame{flex:1;width:100%;gap:6px;justify-content:space-between;padding:4px 0}
-    #viewGame .shoulders,#viewGame .main{max-width:none}
-    #viewGame .main{flex:1;padding:0 2vw}
-    #viewGame .grid3{grid-template:repeat(3,min(17vh,92px))/repeat(3,min(17vh,92px));gap:10px}
-    #viewGame .grid3 .gbtn{font-size:26px}
-    #viewGame .hint{display:none}
-    /* esconde o modo controle quando deitado (gamepad é o foco) */
-    body.playing #viewRemote{display:none!important}
+    body{padding:6px 16px;gap:8px;overflow:hidden}
+    .brand,.hint{display:none}
+    .gamepad{max-width:none}
+    .main{padding:0 2vw}
+    .dpad{grid-template:repeat(3,min(16vh,88px))/repeat(3,min(16vh,88px))}
+    .face.diamond{grid-template:repeat(3,min(16vh,88px))/repeat(3,min(16vh,88px))}
+    .face .rbtn{width:min(17vh,82px);height:min(17vh,82px)}
   }
 </style>
 </head>
 <body>
-  <div class="top"><span class="dot"></span><span class="brand">PRISMA · CONTROLE</span></div>
-  <div class="flash" id="flash">sem conexão</div>
-
-  <div class="tabs">
-    <button id="tabRemote" class="tab on" onclick="showView('remote')">Controle</button>
-    <button id="tabGame" class="tab" onclick="showView('game')">🎮 Jogar</button>
-  </div>
-
-  <!-- ===== CONTROLE ===== -->
-  <div id="viewRemote" class="view">
-    <div class="pad" role="group" aria-label="Direcional">
-      <button class="u" onclick="k('UP')" aria-label="Cima">▲</button>
-      <button class="l" onclick="k('LEFT')" aria-label="Esquerda">◀</button>
-      <button class="ok" onclick="k('OK')" aria-label="OK">OK</button>
-      <button class="r" onclick="k('RIGHT')" aria-label="Direita">▶</button>
-      <button class="d" onclick="k('DOWN')" aria-label="Baixo">▼</button>
-    </div>
-    <div class="row">
-      <button onclick="k('BACK')">‹ Voltar</button>
-      <button onclick="k('HOME')">⌂ Home</button>
-      <button onclick="k('MENU')">☰ Menu</button>
-    </div>
-    <div class="row">
-      <button onclick="k('VDOWN')">Vol −</button>
-      <button onclick="k('MUTE')">Mudo</button>
-      <button onclick="k('VUP')">Vol +</button>
-    </div>
-    <div class="row">
-      <button onclick="k('PLAY')">⏯ Play/Pause</button>
-      <button class="pw" onclick="k('POWER')">⏻ Power</button>
-    </div>
-    <details class="kb" open>
-      <summary>Teclado (barra de pesquisa)</summary>
-      <input id="tx" inputmode="text" placeholder="digite e toque em Enviar">
-      <div class="srow">
-        <button onclick="sendText()">Enviar</button>
-        <button class="sec" onclick="k('DEL')">⌫</button>
-        <button class="sec" onclick="k('ENTER')">↵ Buscar</button>
-      </div>
-    </details>
-  </div>
-
-  <!-- ===== GAMEPAD ===== -->
-  <div id="viewGame" class="view" style="display:none">
-    <div class="shoulders">
-      <button class="gbtn" data-g="L">L</button>
-      <button class="gbtn" data-g="R">R</button>
-    </div>
+  <div class="top"><span class="dot"></span><span class="brand">PRISMA · CONTROLE</span><span class="flash" id="flash">sem conexão</span></div>
+  <div class="consoles" id="consoles"></div>
+  <div class="gamepad">
+    <div class="shoulders" id="shoulders"></div>
     <div class="main">
-      <div class="grid3 dpad">
+      <div class="dpad">
         <button class="gbtn gu" data-g="UP">▲</button>
         <button class="gbtn gl" data-g="LEFT">◀</button>
         <button class="gbtn gr" data-g="RIGHT">▶</button>
         <button class="gbtn gd" data-g="DOWN">▼</button>
       </div>
-      <div class="grid3 face">
-        <button class="gbtn fx" data-g="X">X</button>
-        <button class="gbtn fy" data-g="Y">Y</button>
-        <button class="gbtn fa" data-g="A">A</button>
-        <button class="gbtn fb" data-g="B">B</button>
-      </div>
+      <div class="face" id="face"></div>
     </div>
-    <div class="startsel">
-      <button class="gbtn" data-g="SELECT">Select</button>
-      <button class="gbtn" data-g="START">Start</button>
-    </div>
-    <div class="hint">segure os botões · gire o celular pra deitar</div>
+    <div class="startsel" id="startsel"></div>
   </div>
+  <div class="hint">segure os botões · gire o celular pra deitar</div>
 
 <script>
   var flash = document.getElementById('flash');
-  function show(){ flash.style.opacity=1; setTimeout(function(){flash.style.opacity=0;},1500); }
+  function warn(){ flash.style.opacity=1; setTimeout(function(){flash.style.opacity=0;},1500); }
+  function g(code,act){ fetch('/game?k='+code+'&a='+act,{method:'POST'}).catch(warn); }
 
-  // ---- modo controle (toque simples) ----
-  function k(code){ if(navigator.vibrate)navigator.vibrate(10);
-    fetch('/key?k='+code,{method:'POST'}).then(function(r){ if(!r.ok) show(); }).catch(show); }
-  function sendText(){ var el=document.getElementById('tx'), t=el.value; if(!t){return;}
-    fetch('/type?t='+encodeURIComponent(t),{method:'POST'}).then(function(r){ if(r.ok){el.value='';}else{show();} }).catch(show); }
+  function bind(el){
+    if(el._b) return; el._b=1;
+    var code=el.getAttribute('data-g'), held=false;
+    function d(e){ e.preventDefault(); if(held)return; held=true; el.classList.add('on'); if(navigator.vibrate)navigator.vibrate(6); g(code,'down'); }
+    function u(e){ e.preventDefault(); if(!held)return; held=false; el.classList.remove('on'); g(code,'up'); }
+    el.addEventListener('pointerdown',d); el.addEventListener('pointerup',u);
+    el.addEventListener('pointercancel',u); el.addEventListener('pointerleave',u);
+  }
+  function bindAll(){ document.querySelectorAll('[data-g]').forEach(bind); }
 
-  // ---- modo gamepad (segurar = down/up) ----
-  function g(code,act){ fetch('/game?k='+code+'&a='+act,{method:'POST'}).catch(show); }
-  document.querySelectorAll('[data-g]').forEach(function(el){
-    var code = el.getAttribute('data-g'), held=false;
-    function down(e){ e.preventDefault(); if(held)return; held=true; el.classList.add('on');
-      if(navigator.vibrate)navigator.vibrate(6); g(code,'down'); }
-    function up(e){ e.preventDefault(); if(!held)return; held=false; el.classList.remove('on'); g(code,'up'); }
-    el.addEventListener('pointerdown',down);
-    el.addEventListener('pointerup',up);
-    el.addEventListener('pointercancel',up);
-    el.addEventListener('pointerleave',up);
+  // layout por console: face = [rótulo, código enviado], ombros L/R, rótulo do Select
+  var LAYOUTS = {
+    'NES':              {face:[['B','B'],['A','A']], lr:false, sel:'SELECT'},
+    'Game Boy':         {face:[['B','B'],['A','A']], lr:false, sel:'SELECT'},
+    'Game Boy Advance': {face:[['B','B'],['A','A']], lr:true,  sel:'SELECT'},
+    'Super Nintendo':   {face:'diamond',             lr:true,  sel:'SELECT'},
+    // Mega Drive: A/B/C mapeiam p/ Y/B/A (genesis_plus_gx); Mode = Select
+    'Mega Drive':       {face:[['A','Y'],['B','B'],['C','A']], lr:false, sel:'MODE'}
+  };
+  var faceEl=document.getElementById('face'), shEl=document.getElementById('shoulders'), ssEl=document.getElementById('startsel');
+
+  function render(sys){
+    var L = LAYOUTS[sys] || LAYOUTS['Super Nintendo'];
+    if(L.face==='diamond'){
+      faceEl.className='face diamond';
+      faceEl.innerHTML='<button class="gbtn fx" data-g="X">X</button><button class="gbtn fy" data-g="Y">Y</button>'+
+        '<button class="gbtn fa" data-g="A">A</button><button class="gbtn fb" data-g="B">B</button>';
+    } else {
+      faceEl.className='face';
+      faceEl.innerHTML=L.face.map(function(b){ return '<button class="gbtn rbtn" data-g="'+b[1]+'">'+b[0]+'</button>'; }).join('');
+    }
+    shEl.innerHTML = L.lr ? '<button class="gbtn" data-g="L">L</button><button class="gbtn" data-g="R">R</button>' : '';
+    ssEl.innerHTML = '<button class="gbtn" data-g="SELECT">'+L.sel+'</button><button class="gbtn" data-g="START">Start</button>';
+    bindAll();
+    document.querySelectorAll('.cchip').forEach(function(c){ c.classList.toggle('on', c.dataset.sys===sys); });
+  }
+
+  // chips de console (seletor manual)
+  var SYS=['NES','Super Nintendo','Game Boy','Game Boy Advance','Mega Drive'];
+  var SHORT={'NES':'NES','Super Nintendo':'SNES','Game Boy':'GB','Game Boy Advance':'GBA','Mega Drive':'Mega Drive'};
+  var cEl=document.getElementById('consoles'), manual=false;
+  SYS.forEach(function(s){
+    var b=document.createElement('button'); b.className='cchip'; b.dataset.sys=s; b.textContent=SHORT[s];
+    b.onclick=function(){ manual=true; render(s); }; cEl.appendChild(b);
   });
 
-  function showView(v){
-    document.getElementById('viewRemote').style.display = v==='remote'?'flex':'none';
-    document.getElementById('viewGame').style.display   = v==='game'?'flex':'none';
-    document.getElementById('tabRemote').classList.toggle('on', v==='remote');
-    document.getElementById('tabGame').classList.toggle('on', v==='game');
-    document.body.classList.toggle('playing', v==='game');
-    if(v==='game'){ goFullscreen(); } else { exitFullscreen(); }
-  }
+  render('Super Nintendo');   // padrão até saber o jogo aberto
 
-  // tela cheia + travar deitado (cara de app nativo) — best-effort, exige gesto do usuário
-  function goFullscreen(){
-    var el=document.documentElement;
-    var req=el.requestFullscreen||el.webkitRequestFullscreen;
-    if(req){ try{ req.call(el).catch(function(){}); }catch(e){} }
-    if(screen.orientation&&screen.orientation.lock){ try{ screen.orientation.lock('landscape').catch(function(){}); }catch(e){} }
+  // segue o console do jogo aberto (até você escolher um manualmente)
+  function sync(){
+    if(manual) return;
+    fetch('/system').then(function(r){return r.text();}).then(function(t){
+      t=(t||'').trim(); if(t && LAYOUTS[t]) render(t);
+    }).catch(function(){});
   }
-  function exitFullscreen(){
-    if(screen.orientation&&screen.orientation.unlock){ try{screen.orientation.unlock();}catch(e){} }
-    var ex=document.exitFullscreen||document.webkitExitFullscreen;
-    if(ex&&(document.fullscreenElement||document.webkitFullscreenElement)){ try{ ex.call(document); }catch(e){} }
-  }
+  sync(); setInterval(sync,2500);
 
-  // bloqueia zoom por duplo-toque / pinça
   document.addEventListener('dblclick',function(e){e.preventDefault();},{passive:false});
   document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});
 </script>
