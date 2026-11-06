@@ -56,6 +56,7 @@ class GameActivity : ComponentActivity() {
         system = intent.getStringExtra("system") ?: ""
         root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key) { finish() } } })
         setContentView(root)
+        goFullscreen()                                      // tela cheia: esconde a barra de status/navegação
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
         com.pedro.prisma.remote.InputBus.system = system
 
@@ -91,6 +92,20 @@ class GameActivity : ComponentActivity() {
         super.onResume()
         com.pedro.prisma.remote.InputBus.view = retroView
         com.pedro.prisma.remote.InputBus.system = system
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) goFullscreen()   // reaplica se as barras reaparecerem
+    }
+
+    /** Tela cheia imersiva (esconde status/navegação; aparecem só ao deslizar da borda). */
+    private fun goFullscreen() {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
