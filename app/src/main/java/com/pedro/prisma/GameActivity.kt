@@ -45,7 +45,7 @@ class GameActivity : ComponentActivity() {
         val root = FrameLayout(this)
         root.addView(retroView)
         val system = intent.getStringExtra("system") ?: ""
-        root.addView(ComposeView(this).apply { setContent { TouchGamepad(retroView, system) { finish() } } })
+        root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key) { finish() } } })
         setContentView(root)
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
 
