@@ -20,12 +20,14 @@ class GameActivity : ComponentActivity() {
     private lateinit var retroView: GLRetroView
     private var stateFile: File? = null
     private var system: String = ""
+    private var key: String = "game"
+    private var loaded = false   // carrega o estado só uma vez (não reverte ao voltar pro app)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val core = intent.getStringExtra("core") ?: return finish()
         val romUri = intent.getStringExtra("rom")?.let { android.net.Uri.parse(it) } ?: return finish()
-        val key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
+        key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
         stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "$key.state") }
 
         val data = GLRetroViewData(this).apply {
@@ -52,6 +54,20 @@ class GameActivity : ComponentActivity() {
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
         com.pedro.prisma.remote.InputBus.system = system
 
+        // carrega o estado escolhido na tela de detalhe quando o core terminar de carregar (só uma vez)
+        lifecycleScope.launch {
+            retroView.getGLRetroEvents().collect { ev ->
+                if (ev is GLRetroView.GLRetroEvents.SurfaceCreated && !loaded) {
+                    loaded = true
+                    when (val which = intent.getStringExtra("load") ?: "auto") {
+                        "new" -> {}  // começa do zero
+                        "auto" -> stateFile?.takeIf { it.exists() }?.let { runCatching { retroView.unserializeState(it.readBytes()) } }
+                        else -> which.toIntOrNull()?.let { com.pedro.prisma.ui.StateSlots.load(retroView, this@GameActivity, key, it) }
+                    }
+                }
+            }
+        }
+
         // animação "inserindo o cartucho no console" (por cima, enquanto o jogo carrega)
         if (com.pedro.prisma.ui.IntroPrefs.shouldShow(this, key)) {
             val title = intent.getStringExtra("title") ?: key
@@ -70,16 +86,6 @@ class GameActivity : ComponentActivity() {
         super.onResume()
         com.pedro.prisma.remote.InputBus.view = retroView
         com.pedro.prisma.remote.InputBus.system = system
-
-        // continua de onde parou: restaura o estado quando o core terminar de carregar
-        lifecycleScope.launch {
-            retroView.getGLRetroEvents().collect { ev ->
-                if (ev is GLRetroView.GLRetroEvents.SurfaceCreated) {
-                    val f = stateFile
-                    if (f != null && f.exists()) runCatching { retroView.unserializeState(f.readBytes()) }
-                }
-            }
-        }
     }
 
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
@@ -102,16 +108,18 @@ class GameActivity : ComponentActivity() {
         k == KeyEvent.KEYCODE_BUTTON_START || k == KeyEvent.KEYCODE_BUTTON_SELECT ||
         k == KeyEvent.KEYCODE_BUTTON_THUMBL || k == KeyEvent.KEYCODE_BUTTON_THUMBR
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (!isGameKey(keyCode)) return super.onKeyDown(keyCode, event)
-        retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, keyCode)
-        return true
-    }
-
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (!isGameKey(keyCode)) return super.onKeyUp(keyCode, event)
-        retroView.sendKeyEvent(KeyEvent.ACTION_UP, keyCode)
-        return true
+    // Gamepad físico (BLE ou com fio): captura as teclas antes do Compose (que senão
+    // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val code = event.keyCode
+        if (::retroView.isInitialized && isGameKey(code)) {
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, code)
+                KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, code)
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {

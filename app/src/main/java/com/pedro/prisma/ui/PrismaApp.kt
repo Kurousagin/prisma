@@ -393,16 +393,34 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(18.dp))
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(P.grad)
-                    .clickable { Games.launch(ctx, g) }.padding(vertical = 15.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(if (resumes) "▶ CONTINUAR" else "▶ JOGAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
             if (resumes) {
-                Text("Salva sozinho ao sair — você volta de onde parou.", color = P.faint, fontSize = 11.5.sp,
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        Modifier.weight(1f).clip(RoundedCornerShape(15.dp)).background(P.grad)
+                            .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("▶ CONTINUAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    Box(
+                        Modifier.clip(RoundedCornerShape(15.dp)).background(P.card).border(1.dp, P.line, RoundedCornerShape(15.dp))
+                            .clickable { Games.launch(ctx, g, "new") }.padding(horizontal = 16.dp, vertical = 15.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("Novo jogo", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                }
+                Text("Continuar salva sozinho ao sair — você volta de onde parou.", color = P.faint, fontSize = 11.5.sp,
                     modifier = Modifier.padding(top = 8.dp))
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(P.grad)
+                        .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Text("▶ JOGAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+            }
+            val savedSlots = remember(g.uri) { StateSlots.list(ctx, Games.stateKey(g)) }.filter { it.used }
+            if (savedSlots.isNotEmpty()) {
+                Section("Carregar estado")
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    savedSlots.forEach { s -> SlotLoadCard(g, s) { Games.launch(ctx, g, s.n.toString()) } }
+                }
             }
             Section("Extras")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -415,6 +433,27 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         }
     }
     if (showQr) QrDialog(remoteUrl) { showQr = false }
+}
+
+@Composable
+private fun SlotLoadCard(g: GameEntry, slot: StateSlots.SlotInfo, onClick: () -> Unit) {
+    val ctx = LocalContext.current
+    val thumb = remember(slot.n) { StateSlots.loadThumb(ctx, Games.stateKey(g), slot.n) }
+    val fmt = remember { java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault()) }
+    Column(
+        Modifier.width(120.dp).clip(RoundedCornerShape(12.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(8.dp),
+    ) {
+        Box(
+            Modifier.fillMaxWidth().aspectRatio(16f / 10f).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .35f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (thumb != null) Image(thumb, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            else Text("sem print", color = P.faint, fontSize = 10.sp)
+        }
+        Text("Slot ${slot.n}", color = P.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
+        Text(slot.time?.let { fmt.format(java.util.Date(it)) } ?: "", color = P.dim, fontSize = 10.5.sp)
+    }
 }
 
 @Composable
