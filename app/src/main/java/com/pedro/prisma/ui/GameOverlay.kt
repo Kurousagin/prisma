@@ -45,7 +45,8 @@ import java.util.Locale
 @Composable
 fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: () -> Unit) {
     var showSlots by remember { mutableStateOf(false) }
-    var controls by remember { mutableStateOf(true) }
+    // se já tem um gamepad conectado, começa com o controle touch oculto
+    var controls by remember { mutableStateOf(!hasGamepad()) }
     Box(Modifier.fillMaxSize()) {
         if (controls) TouchGamepad(retro, system)
         // barra superior sempre visível (mesmo com os controles ocultos)
@@ -59,6 +60,17 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: ()
         }
     }
     if (showSlots) SlotSheet(retro, stateKey) { showSlots = false }
+}
+
+/** Há algum controle físico (gamepad/joystick, BLE ou com fio) conectado? */
+private fun hasGamepad(): Boolean {
+    for (id in android.view.InputDevice.getDeviceIds()) {
+        val s = android.view.InputDevice.getDevice(id)?.sources ?: continue
+        if (s and android.view.InputDevice.SOURCE_GAMEPAD == android.view.InputDevice.SOURCE_GAMEPAD ||
+            s and android.view.InputDevice.SOURCE_JOYSTICK == android.view.InputDevice.SOURCE_JOYSTICK
+        ) return true
+    }
+    return false
 }
 
 @Composable
