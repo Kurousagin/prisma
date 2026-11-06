@@ -14,7 +14,7 @@ data class GameSystem(
 )
 
 /** Um jogo. `file` só existe quando é arquivo local (permite capa ao lado); SAF usa só `uri`. */
-data class GameEntry(val title: String, val system: GameSystem, val uri: Uri, val file: File? = null)
+data class GameEntry(val title: String, val system: GameSystem, val uri: Uri, val file: File? = null, val added: Long = 0L)
 
 object Games {
 
@@ -36,15 +36,9 @@ object Games {
     private const val PREFS = "prisma"
     private const val KEY_FOLDER = "rom_folder"
 
-    /** Diretórios de arquivo auto-escaneados: pasta do app (sem permissão) + /sdcard/Roms e USB (se houver acesso). */
-    private fun romDirs(context: Context): List<File> {
-        val dirs = mutableListOf(File("/sdcard/Roms"))
-        File("/storage").listFiles()?.forEach { vol ->
-            if (vol.name != "emulated" && vol.name != "self") dirs += File(vol, "Roms")
-        }
-        dirs += context.getExternalFilesDirs(null).filterNotNull().map { File(it, "Roms") }
-        return dirs.distinct()
-    }
+    /** Pasta do app (sem permissão) — scan principal é a pasta escolhida via SAF. */
+    private fun romDirs(context: Context): List<File> =
+        context.getExternalFilesDirs(null).filterNotNull().map { File(it, "Roms") }
 
     /** Auto-scan dos diretórios de arquivo + da pasta escolhida pelo usuário (SAF). */
     fun load(context: Context): List<GameEntry> {
@@ -52,14 +46,14 @@ object Games {
         romDirs(context).forEach { dir ->
             dir.listFiles()?.forEach { f ->
                 val sys = byExt[f.extension.lowercase()] ?: return@forEach
-                out += GameEntry(f.nameWithoutExtension, sys, Uri.fromFile(f), f)
+                out += GameEntry(f.nameWithoutExtension, sys, Uri.fromFile(f), f, f.lastModified())
             }
         }
         savedFolder(context)?.let { tree ->
             DocumentFile.fromTreeUri(context, tree)?.listFiles()?.forEach { doc ->
                 val name = doc.name ?: return@forEach
                 val sys = byExt[name.substringAfterLast('.', "").lowercase()] ?: return@forEach
-                out += GameEntry(name.substringBeforeLast('.'), sys, doc.uri)
+                out += GameEntry(name.substringBeforeLast('.'), sys, doc.uri, added = doc.lastModified())
             }
         }
         return out.distinctBy { it.title + "|" + it.system.label }.sortedBy { it.title.lowercase() }

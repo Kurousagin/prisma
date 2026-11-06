@@ -28,7 +28,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF0A0A12), surface = Color(0xFF18161F))) {
                 val url by produceState<String?>(initialValue = null) {
-                    value = runCatching { remote?.address() }.getOrNull()
+                    // tenta até o Wi-Fi/servidor estarem prontos (senão o QR vinha vazio)
+                    repeat(20) {
+                        val a = runCatching { remote?.address() }.getOrNull()
+                        if (a != null) { value = a; return@produceState }
+                        kotlinx.coroutines.delay(400)
+                    }
                 }
                 PrismaApp(remoteUrl = url)
             }

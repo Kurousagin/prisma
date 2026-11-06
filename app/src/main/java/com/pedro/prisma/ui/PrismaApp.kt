@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -68,15 +69,34 @@ fun PrismaApp(remoteUrl: String?) {
     var tab by remember { mutableStateOf("home") }
     var detail by remember { mutableStateOf<GameEntry?>(null) }
     var libFilter by remember { mutableStateOf("Todos") }
-
     var reload by remember { mutableStateOf(0) }
-    val games by produceState(initialValue = emptyList<GameEntry>(), reload) {
-        value = withContext(Dispatchers.IO) { Games.load(ctx) }
+
+    var games by remember { mutableStateOf<List<GameEntry>?>(null) }
+    var coverDone by remember { mutableStateOf(0) }
+    var coverTotal by remember { mutableStateOf(0) }
+
+    LaunchedEffect(reload) {
+        games = null; coverDone = 0; coverTotal = 0
+        val list = withContext(Dispatchers.IO) { Games.load(ctx) }
+        val vis = list.take(24)                       // pré-baixa as capas visíveis com progresso
+        coverTotal = vis.size
+        vis.forEach { g ->
+            withContext(Dispatchers.IO) { runCatching { Covers.load(ctx, g) } }
+            coverDone++
+        }
+        games = list
     }
+
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) { Games.saveFolder(ctx, uri); reload++ }
     }
     val pickFolder = { picker.launch(null) }
+
+    val list = games
+    if (list == null) {
+        OnboardingScan(coverDone, coverTotal)
+        return
+    }
 
     BackHandler(enabled = detail != null || tab != "home") {
         if (detail != null) detail = null else tab = "home"
@@ -90,14 +110,51 @@ fun PrismaApp(remoteUrl: String?) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        "home" -> HomeTab(games, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
-                        "lib" -> LibraryTab(games, libFilter, { libFilter = it }, onOpen = { detail = it })
+                        "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
+                        "lib" -> LibraryTab(list, libFilter, { libFilter = it }, onOpen = { detail = it })
                         else -> SupportTab(pickFolder)
                     }
                 }
                 BottomNav(tab) { tab = it }
             }
         }
+    }
+}
+
+@Composable
+private fun OnboardingScan(done: Int, total: Int) {
+    Column(
+        Modifier.fillMaxSize().background(P.bg).padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Image(
+            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.drawable.logo_prisma),
+            contentDescription = "Prisma", modifier = Modifier.fillMaxWidth(0.82f), contentScale = ContentScale.Fit,
+        )
+        Spacer(Modifier.height(28.dp))
+        Text("Sua jornada nostálgica começa aqui.", color = P.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(6.dp))
+        Text("Encontrando ROMs e baixando as capas…", color = P.dim, fontSize = 13.sp, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(18.dp))
+        Box(Modifier.fillMaxWidth(0.82f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(P.card)) {
+            Box(
+                Modifier.fillMaxWidth(if (total > 0) done / total.toFloat() else 0.25f).height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)).background(P.grad),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(if (total > 0) "Capas $done/$total" else "Procurando jogos…", color = P.faint, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun LogoHeader() {
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            androidx.compose.ui.res.painterResource(com.pedro.prisma.R.drawable.logo_prisma),
+            contentDescription = "Prisma", modifier = Modifier.height(38.dp), contentScale = ContentScale.Fit,
+        )
     }
 }
 
@@ -144,7 +201,7 @@ private fun HomeTab(games: List<GameEntry>, onPickFolder: () -> Unit, onOpen: (G
     val ctx = LocalContext.current
     val resumable = games.filter { inProgress(ctx, it) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-        AppBar("Prisma")
+        LogoHeader()
         if (resumable.isNotEmpty()) {
             Section("Continuar jogando")
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -155,16 +212,25 @@ private fun HomeTab(games: List<GameEntry>, onPickFolder: () -> Unit, onOpen: (G
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Games.systems.forEach { s -> ConsoleChip(s.label) { onConsole(s.label) } }
         }
-        Section(if (games.isEmpty()) "Nenhuma ROM ainda" else "Seus jogos")
         if (games.isEmpty()) {
+            Section("Nenhuma ROM ainda")
             Text(
                 "Escolha a pasta onde estão suas ROMs — o Prisma monta a biblioteca sozinho.",
                 color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp),
             )
             PickFolderButton(onPickFolder)
         } else {
+            Section("Adicionados recentemente")
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                games.take(10).forEach { g -> BoxArt(g, Modifier.width(118.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) }) }
+                games.sortedByDescending { it.added }.take(12).forEach { g ->
+                    BoxArt(g, Modifier.width(118.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) })
+                }
+            }
+            Section("Todos os jogos")
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                games.take(12).forEach { g ->
+                    BoxArt(g, Modifier.width(100.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) })
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
