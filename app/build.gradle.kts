@@ -49,4 +49,5 @@ dependencies {
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation("dev.mobile:dadb:1.2.10")
     implementation("com.google.zxing:core:3.5.3")
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }

@@ -22,12 +22,18 @@ class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val core = intent.getStringExtra("core") ?: return finish()
-        val rom = intent.getStringExtra("rom") ?: return finish()
-        stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "${File(rom).name}.state") }
+        val romUri = intent.getStringExtra("rom")?.let { android.net.Uri.parse(it) } ?: return finish()
+        val key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
+        stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "$key.state") }
 
         val data = GLRetroViewData(this).apply {
             coreFilePath = "${applicationInfo.nativeLibraryDir}/$core"
-            gameFilePath = rom
+            if (romUri.scheme == "file") {
+                gameFilePath = romUri.path
+            } else {
+                // ROM de pasta escolhida (SAF): carrega os bytes
+                gameFileBytes = contentResolver.openInputStream(romUri)!!.use { it.readBytes() }
+            }
             systemDirectory = filesDir.absolutePath
             savesDirectory = filesDir.absolutePath
         }

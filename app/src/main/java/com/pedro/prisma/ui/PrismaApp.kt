@@ -3,6 +3,8 @@ package com.pedro.prisma.ui
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -54,11 +56,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-// shortcut: chave Pix de exemplo; trocar pela real do Pedro antes de publicar.
-private const val PIX_KEY = "pix@prisma.app"
+// chave Pix aleatória (EVP) do projeto
+private const val PIX_KEY = "5213f532-d990-4e65-be9f-f0173882c9c4"
 
 private fun inProgress(ctx: Context, g: GameEntry) =
-    File(ctx.filesDir, "states/${g.file.name}.state").exists()
+    File(ctx.filesDir, "states/${Games.stateKey(g)}.state").exists()
 
 @Composable
 fun PrismaApp(remoteUrl: String?) {
@@ -67,9 +69,14 @@ fun PrismaApp(remoteUrl: String?) {
     var detail by remember { mutableStateOf<GameEntry?>(null) }
     var libFilter by remember { mutableStateOf("Todos") }
 
-    val games by produceState(initialValue = emptyList<GameEntry>()) {
+    var reload by remember { mutableStateOf(0) }
+    val games by produceState(initialValue = emptyList<GameEntry>(), reload) {
         value = withContext(Dispatchers.IO) { Games.load(ctx) }
     }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) { Games.saveFolder(ctx, uri); reload++ }
+    }
+    val pickFolder = { picker.launch(null) }
 
     BackHandler(enabled = detail != null || tab != "home") {
         if (detail != null) detail = null else tab = "home"
@@ -83,9 +90,9 @@ fun PrismaApp(remoteUrl: String?) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        "home" -> HomeTab(games, onOpen = { detail = it }) { sys -> libFilter = sys; tab = "lib" }
+                        "home" -> HomeTab(games, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
                         "lib" -> LibraryTab(games, libFilter, { libFilter = it }, onOpen = { detail = it })
-                        else -> SupportTab()
+                        else -> SupportTab(pickFolder)
                     }
                 }
                 BottomNav(tab) { tab = it }
@@ -98,7 +105,7 @@ fun PrismaApp(remoteUrl: String?) {
 @Composable
 fun BoxArt(game: GameEntry, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
-    val cover by produceState<ImageBitmap?>(initialValue = null, game.file.path) {
+    val cover by produceState<ImageBitmap?>(initialValue = null, game.uri.toString()) {
         value = withContext(Dispatchers.IO) { Covers.load(ctx, game)?.asImageBitmap() }
     }
     Box(modifier.clip(RoundedCornerShape(13.dp)).background(Brush.verticalGradient(coverGradient(game.system.label)))) {
@@ -133,7 +140,7 @@ fun BoxArt(game: GameEntry, modifier: Modifier = Modifier) {
 
 /* ---------------- Início ---------------- */
 @Composable
-private fun HomeTab(games: List<GameEntry>, onOpen: (GameEntry) -> Unit, onConsole: (String) -> Unit) {
+private fun HomeTab(games: List<GameEntry>, onPickFolder: () -> Unit, onOpen: (GameEntry) -> Unit, onConsole: (String) -> Unit) {
     val ctx = LocalContext.current
     val resumable = games.filter { inProgress(ctx, it) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -151,9 +158,10 @@ private fun HomeTab(games: List<GameEntry>, onOpen: (GameEntry) -> Unit, onConso
         Section(if (games.isEmpty()) "Nenhuma ROM ainda" else "Seus jogos")
         if (games.isEmpty()) {
             Text(
-                "Copie suas ROMs para /sdcard/Roms (ou uma pasta Roms no USB) e elas aparecem aqui.",
+                "Escolha a pasta onde estão suas ROMs — o Prisma monta a biblioteca sozinho.",
                 color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp),
             )
+            PickFolderButton(onPickFolder)
         } else {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 games.take(10).forEach { g -> BoxArt(g, Modifier.width(118.dp).aspectRatio(3f / 3.7f).clickable { onOpen(g) }) }
@@ -215,7 +223,7 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
             verticalArrangement = Arrangement.spacedBy(11.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(shown, key = { it.file.path }) { g ->
+            items(shown, key = { it.uri.toString() }) { g ->
                 BoxArt(g, Modifier.aspectRatio(3f / 3.9f).clickable { onOpen(g) })
             }
         }
@@ -316,9 +324,17 @@ private fun QrDialog(remoteUrl: String?, onClose: () -> Unit) {
     }
 }
 
+@Composable
+private fun PickFolderButton(onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(13.dp)).background(P.grad).clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+    ) { Text("📂 Escolher pasta de ROMs", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+}
+
 /* ---------------- Apoiar (Pix) ---------------- */
 @Composable
-private fun SupportTab() {
+private fun SupportTab(onPickFolder: () -> Unit) {
     val clip = LocalClipboardManager.current
     val ctx = LocalContext.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -331,7 +347,7 @@ private fun SupportTab() {
             Text("O Prisma é grátis pra sempre.\nSe te ajudou, um Pix mantém o projeto vivo 💜",
                 color = P.dim, fontSize = 13.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(14.dp))
-            Image(remember { qrBitmap(PIX_KEY) }, "QR Pix",
+            Image(remember { qrBitmap(pixPayload(PIX_KEY)) }, "QR Pix",
                 Modifier.size(170.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(12.dp))
             Spacer(Modifier.height(12.dp))
             Text(PIX_KEY, color = P.ink, fontSize = 13.sp,
@@ -356,6 +372,16 @@ private fun SupportTab() {
             AboutLine("Código aberto (GPLv3)")
             Text("Você traz suas próprias ROMs. O Prisma não distribui jogos.",
                 color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+        }
+        Spacer(Modifier.height(14.dp))
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+                .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+        ) {
+            Text("Pasta de ROMs", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("Escolha onde ficam seus jogos. O Prisma escaneia sozinho depois.",
+                color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+            PickFolderButton(onPickFolder)
         }
         Spacer(Modifier.height(16.dp))
     }
