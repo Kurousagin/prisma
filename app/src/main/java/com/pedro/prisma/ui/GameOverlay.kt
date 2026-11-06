@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,22 +41,33 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Gamepad + botão de save states (slots). O auto-save/continuar segue separado. */
+/** Gamepad + barra superior (save / ocultar controles / sair). Auto-save segue separado. */
 @Composable
 fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: () -> Unit) {
     var showSlots by remember { mutableStateOf(false) }
+    var controls by remember { mutableStateOf(true) }
     Box(Modifier.fillMaxSize()) {
-        TouchGamepad(retro, system, onExit)
-        // botão de save states, à esquerda do ✕ (que fica no topo-centro)
-        Box(
-            Modifier.align(Alignment.TopCenter).offset(x = (-48).dp).padding(top = 10.dp)
-                .size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = .35f))
-                .border(1.dp, Color.White.copy(alpha = .25f), CircleShape)
-                .clickable { showSlots = true },
-            contentAlignment = Alignment.Center,
-        ) { Text("💾", fontSize = 16.sp) }
+        if (controls) TouchGamepad(retro, system)
+        // barra superior sempre visível (mesmo com os controles ocultos)
+        Row(
+            Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            TopBtn("💾") { showSlots = true }
+            TopBtn(if (controls) "🚫" else "🎮") { controls = !controls }  // oculta/mostra o controle touch
+            TopBtn("✕") { onExit() }
+        }
     }
     if (showSlots) SlotSheet(retro, stateKey) { showSlots = false }
+}
+
+@Composable
+private fun TopBtn(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = .35f))
+            .border(1.dp, Color.White.copy(alpha = .25f), CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, fontSize = 15.sp, color = Color.White.copy(alpha = .85f)) }
 }
 
 @Composable
