@@ -443,6 +443,10 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) { Text("▶ JOGAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
             }
+            val info by produceState<GameInfo.Info?>(null, g.uri) {
+                value = withContext(Dispatchers.IO) { GameInfo.get(ctx, g.title) }
+            }
+            info?.let { AboutSection(it) }
             val savedSlots = remember(g.uri) { StateSlots.list(ctx, Games.stateKey(g)) }.filter { it.used }
             if (savedSlots.isNotEmpty()) {
                 Section("Carregar estado")
@@ -461,6 +465,37 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         }
     }
     if (showQr) QrDialog(remoteUrl) { showQr = false }
+}
+
+@Composable
+private fun AboutSection(info: GameInfo.Info) {
+    var expanded by remember { mutableStateOf(false) }
+    Section("Sobre o jogo")
+    if (info.year != null || info.genre != null) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 10.dp)) {
+            info.year?.let { InfoChip("📅 $it") }
+            info.genre?.let { InfoChip("🎯 ${it.replaceFirstChar { c -> c.uppercase() }}") }
+        }
+    }
+    Text(
+        info.about, color = P.dim, fontSize = 13.sp, lineHeight = 19.sp,
+        maxLines = if (expanded) Int.MAX_VALUE else 4, overflow = TextOverflow.Ellipsis,
+    )
+    if (info.about.length > 160) {
+        Text(
+            if (expanded) "ver menos" else "ver mais", color = P.p2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 4.dp).clickable { expanded = !expanded },
+        )
+    }
+    Text("Fonte: Wikipédia", color = P.faint, fontSize = 10.5.sp, modifier = Modifier.padding(top = 6.dp))
+}
+
+@Composable
+private fun InfoChip(text: String) {
+    Box(
+        Modifier.clip(RoundedCornerShape(999.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+    ) { Text(text, color = P.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable
