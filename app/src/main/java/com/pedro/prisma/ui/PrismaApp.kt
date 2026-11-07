@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -509,7 +511,6 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
                 ExtraTile("🎮", "Controle\npelo celular", Modifier.weight(1f)) { showQr = true }
                 ExtraTile("🖼️", "Trocar\ncapa", Modifier.weight(1f)) { pickCover.launch("image/*") }
                 ExtraTile("🏆", "Conquistas\nem breve", Modifier.weight(1f)) {}
-                ExtraTile("☁️", "Backup\nem breve", Modifier.weight(1f)) {}
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -675,8 +676,52 @@ private fun SettingsTab(onPickFolder: () -> Unit) {
         ShaderSettingCard()
         Spacer(Modifier.height(14.dp))
         AnimSettingCard()
+        Spacer(Modifier.height(14.dp))
+        BackupCard()
         Spacer(Modifier.height(16.dp))
     }
+}
+
+@Composable
+private fun BackupCard() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val exportTo = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) scope.launch {
+            val name = withContext(Dispatchers.IO) { Backup.exportToTree(ctx, uri) }
+            Toast.makeText(ctx, if (name != null) "Backup salvo: $name" else "Nenhum save pra guardar ainda", Toast.LENGTH_LONG).show()
+        }
+    }
+    val importFrom = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val n = withContext(Dispatchers.IO) { Backup.importFromZip(ctx, uri) }
+            Toast.makeText(ctx, if (n > 0) "$n arquivos restaurados" else "Backup inválido", Toast.LENGTH_LONG).show()
+        }
+    }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+    ) {
+        Text("Backup dos saves", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Guarde seus save states e saves de bateria num .zip — pra trocar de celular ou reinstalar sem perder o progresso.",
+            color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        PillButton("💾 Fazer backup", true, Modifier.fillMaxWidth()) { exportTo.launch(null) }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PillButton("↩ Restaurar", false, Modifier.weight(1f)) { importFrom.launch(arrayOf("application/zip")) }
+            PillButton("↗ Compartilhar", false, Modifier.weight(1f)) { Backup.share(ctx) }
+        }
+    }
+}
+
+@Composable
+private fun PillButton(label: String, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(13.dp))
+            .then(if (primary) Modifier.background(P.grad) else Modifier.background(P.card2).border(1.dp, P.line, RoundedCornerShape(13.dp)))
+            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, color = if (primary) Color.White else P.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
 }
 
 @Composable
