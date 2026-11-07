@@ -12,7 +12,7 @@ object CoreTuning {
     fun variables(core: String): Array<Variable> = when {
         // GBA (mgba) é o único core pesado do conjunto: remover loops ociosos
         // acelera bastante em CPU fraca, sem efeito colateral de imagem/som.
-        core.startsWith("mgba") -> arrayOf(Variable("mgba_idle_optimization", "Detect and Remove"))
+        core.contains("mgba") -> arrayOf(Variable("mgba_idle_optimization", "Detect and Remove"))
         else -> emptyArray()
     }
 }
