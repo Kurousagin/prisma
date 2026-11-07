@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -299,6 +302,7 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
     val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf("az") }   // az | recent
+    var view by remember { mutableStateOf("grade") }  // grade | estante
     val systems = listOf("Todos", "★ Favoritos") + Games.systems.map { it.label }
     val q = query.trim()
     val favs = Favorites.all(ctx)
@@ -319,14 +323,19 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
         }
         Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp)
+            Spacer(Modifier.width(10.dp))
+            SortChip("▦", view == "grade") { view = "grade" }
+            Spacer(Modifier.width(6.dp))
+            SortChip("▤", view == "estante") { view = "estante" }
             Spacer(Modifier.weight(1f))
-            Text("Ordenar:", color = P.faint, fontSize = 11.5.sp, modifier = Modifier.padding(end = 7.dp))
             SortChip("A-Z", sort == "az") { sort = "az" }
             Spacer(Modifier.width(6.dp))
             SortChip("Recentes", sort == "recent") { sort = "recent" }
         }
         if (shown.isEmpty()) {
             Text("Nenhum jogo encontrado.", color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 32.dp))
+        } else if (view == "estante") {
+            ShelfView(shown, onOpen)
         } else LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(11.dp),
@@ -337,6 +346,47 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
                 BoxArt(g, Modifier.aspectRatio(3f / 3.9f).clickable { onOpen(g) })
             }
         }
+    }
+}
+
+/** Visão "estante": capas em pé sobre prateleiras de madeira. */
+@Composable
+private fun ShelfView(games: List<GameEntry>, onOpen: (GameEntry) -> Unit) {
+    LazyColumn(Modifier.fillMaxSize()) {
+        items(games.chunked(3), key = { it.first().uri.toString() }) { row ->
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                row.forEach { g ->
+                    BoxArt(
+                        g,
+                        Modifier.weight(1f).aspectRatio(3f / 3.9f)
+                            .shadow(10.dp, RoundedCornerShape(10.dp), clip = false)
+                            .clickable { onOpen(g) },
+                    )
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Plank()
+        }
+    }
+}
+
+/** Tábua de madeira da prateleira (frente + sombra projetada embaixo). */
+@Composable
+private fun Plank() {
+    Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+        Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0x40FFFFFF)))  // quina iluminada
+        Box(
+            Modifier.fillMaxWidth().height(18.dp)
+                .background(Brush.verticalGradient(listOf(Color(0xFF6E4B2E), Color(0xFF3C2817)))),
+        )
+        Box(
+            Modifier.fillMaxWidth().height(12.dp)
+                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .4f), Color.Transparent))),
+        )
     }
 }
 
