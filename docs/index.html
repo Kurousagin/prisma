@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prisma — Emulador de clássicos retrô</title>
+<meta name="description" content="Prisma: emulador retrô para Android, grátis, sem anúncios e de código aberto. NES, Super Nintendo, Game Boy, GBA e Mega Drive — com suas próprias ROMs.">
+
+<!-- Open Graph / prévia em links -->
+<meta property="og:title" content="Prisma — Emulador de clássicos retrô">
+<meta property="og:description" content="Grátis, sem anúncios e de código aberto. NES, SNES, Game Boy, GBA e Mega Drive no seu Android.">
+<meta property="og:image" content="https://kurousagin.github.io/prisma/img/feature.png">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#08080f; --bg2:#0f0d18; --card:#15121f; --line:#241f33;
+    --fg:#f5f3fb; --dim:#a8a3c0; --faint:#6e6a88;
+    --acc:#7C4DFF; --acc2:#B36BFF; --green:#56E39F; --blue:#5B8DEF;
+    --radius:18px;
+    --gut: max(20px, env(safe-area-inset-left,0px));
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.65 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{font-family:Fredoka,Inter,sans-serif; line-height:1.15; text-wrap:balance; margin:0}
+  a{color:var(--acc2); text-decoration:none}
+  img{max-width:100%; display:block}
+  .wrap{max-width:1080px; margin:0 auto; padding-left:var(--gut); padding-right:max(20px,env(safe-area-inset-right,0px))}
+
+  /* glow de fundo */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(60% 50% at 50% -5%, rgba(124,77,255,.22), transparent 70%),
+      radial-gradient(40% 40% at 90% 10%, rgba(86,227,159,.10), transparent 70%),
+      var(--bg);
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero{padding-block:48px 8px; text-align:center}
+  .banner{
+    max-width:640px; margin:0 auto 26px; border-radius:24px;
+    box-shadow:0 30px 70px -30px rgba(124,77,255,.6);
+  }
+  .tag{color:var(--dim); font-size:clamp(16px,2.6vw,20px); margin:0 auto 22px; max-width:30ch}
+  .badges{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:30px}
+  .badge{
+    font-size:13px; font-weight:600; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--fg);
+  }
+  .badge.g{color:var(--green); border-color:rgba(86,227,159,.4)}
+  .badge.p{color:var(--acc2); border-color:rgba(179,107,255,.4)}
+  .badge.b{color:var(--blue); border-color:rgba(91,141,239,.4)}
+
+  .cta{display:flex; flex-direction:column; align-items:center; gap:12px}
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:Fredoka,sans-serif; font-weight:600; font-size:19px;
+    color:#fff; background:linear-gradient(135deg,var(--acc),var(--acc2));
+    padding:16px 34px; border-radius:999px; border:0;
+    box-shadow:0 14px 34px -10px rgba(124,77,255,.8); transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 20px 44px -12px rgba(124,77,255,.9)}
+  .btn svg{width:22px; height:22px}
+  .meta{color:var(--faint); font-size:13.5px}
+  .meta a{color:var(--dim)}
+
+  /* ---------- SEÇÕES ---------- */
+  section{padding-block:48px}
+  .eyebrow{color:var(--acc2); font-weight:600; font-size:13px; letter-spacing:.12em; text-transform:uppercase; text-align:center; margin-bottom:10px}
+  h2.title{font-size:clamp(26px,5vw,38px); text-align:center; font-weight:700}
+  .lead{color:var(--dim); text-align:center; max-width:52ch; margin:12px auto 0}
+
+  /* passos de instalação */
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:34px}
+  .step{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px 20px}
+  .step .n{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-family:Fredoka,sans-serif; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--acc),var(--acc2)); margin-bottom:12px}
+  .step h3{font-size:16.5px; margin-bottom:6px}
+  .step p{color:var(--dim); font-size:14px; margin:0}
+
+  /* features */
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:34px}
+  .feat{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px; transition:border-color .15s ease, transform .15s ease}
+  .feat:hover{border-color:rgba(124,77,255,.45); transform:translateY(-3px)}
+  .feat .ico{font-size:26px; margin-bottom:12px}
+  .feat h3{font-size:16.5px; margin-bottom:6px}
+  .feat p{color:var(--dim); font-size:14px; margin:0}
+
+  /* screenshots */
+  .shots{display:flex; gap:20px; overflow-x:auto; padding:30px 4px 10px; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch}
+  .shots figure{margin:0; flex:0 0 auto; width:220px; scroll-snap-align:center}
+  .phone{border:7px solid #1c1830; border-radius:30px; overflow:hidden; box-shadow:0 24px 50px -24px rgba(0,0,0,.8); background:#000}
+  .shots figcaption{color:var(--dim); font-size:13px; text-align:center; margin-top:10px}
+
+  /* consoles */
+  .consoles{background:linear-gradient(180deg,transparent,rgba(124,77,255,.06)); border-block:1px solid var(--line)}
+  .chips{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:26px}
+  .chip{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 18px; font-weight:600; font-size:14.5px}
+  .chip span{color:var(--faint); font-weight:500; font-size:12.5px; display:block}
+
+  /* privacidade */
+  .priv{max-width:720px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:26px}
+  .priv ul{margin:14px 0 0; padding-left:20px; color:var(--dim)}
+  .priv li{margin:6px 0}
+
+  footer{border-top:1px solid var(--line); padding-block:34px; text-align:center; color:var(--faint); font-size:14px}
+  footer a{margin:0 10px; color:var(--dim)}
+  footer .fine{margin-top:14px; font-size:12.5px; color:var(--faint)}
+
+  @media (max-width:760px){
+    .steps,.grid{grid-template-columns:1fr}
+    header.hero{padding-block:34px 4px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="banner" src="img/feature.png" alt="Prisma — emulador de clássicos retrô" width="1024" height="500">
+    <p class="tag">Transforme seu Android numa consola clássica. Com as suas próprias ROMs.</p>
+    <div class="badges">
+      <span class="badge g">● Grátis pra sempre</span>
+      <span class="badge p">● Sem anúncios</span>
+      <span class="badge b">● Código aberto (GPLv3)</span>
+    </div>
+    <div class="cta">
+      <a class="btn" href="https://github.com/Kurousagin/prisma/releases/download/v1.0/Prisma-1.0.apk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Baixar APK · v1.0
+      </a>
+      <p class="meta">Android 12+ · ~24 MB · <a href="https://github.com/Kurousagin/prisma/releases">todas as versões</a></p>
+    </div>
+  </div>
+</header>
+
+<section id="instalar">
+  <div class="wrap">
+    <p class="eyebrow">Instalação</p>
+    <h2 class="title">Instalar é rápido</h2>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3>Baixe o APK</h3><p>Toque em “Baixar APK” acima. O arquivo vai pra sua pasta de downloads.</p></div>
+      <div class="step"><div class="n">2</div><h3>Permita a instalação</h3><p>Abra o arquivo. Na primeira vez, o Android pede pra liberar “instalar de fontes desconhecidas”.</p></div>
+      <div class="step"><div class="n">3</div><h3>Aponte suas ROMs</h3><p>No app, escolha a pasta onde estão seus jogos. A biblioteca monta sozinha e baixa as capas.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="recursos">
+  <div class="wrap">
+    <p class="eyebrow">Recursos</p>
+    <h2 class="title">Feito pra quem ama clássicos</h2>
+    <p class="lead">Experiência de consola de verdade, do menu ao jogo — leve e sem frescura.</p>
+    <div class="grid">
+      <div class="feat"><div class="ico">🎮</div><h3>5 gerações, nativas</h3><p>NES, Super Nintendo, Game Boy/Color, GBA e Mega Drive/Genesis/Master System/Game Gear — sem depender de outros apps.</p></div>
+      <div class="feat"><div class="ico">🖼️</div><h3>Capas automáticas</h3><p>A biblioteca se organiza sozinha e baixa a arte das caixas. Dá pra trocar a capa por uma da galeria.</p></div>
+      <div class="feat"><div class="ico">📚</div><h3>Biblioteca do seu jeito</h3><p>Filtre por console, ordene e alterne entre grade e a visão “estante”. Sua escolha fica salva.</p></div>
+      <div class="feat"><div class="ico">📖</div><h3>Ficha do jogo</h3><p>Ano, gênero e uma sinopse curta (da Wikipédia), guardados no aparelho.</p></div>
+      <div class="feat"><div class="ico">💾</div><h3>Save states + continua sozinho</h3><p>Vários saves por jogo, com miniatura e data. E ao sair, você volta exatamente de onde parou.</p></div>
+      <div class="feat"><div class="ico">📸</div><h3>Compartilhar print</h3><p>Capture o jogo numa moldura de TV retrô e mande pra onde quiser.</p></div>
+      <div class="feat"><div class="ico">📱</div><h3>Controle pelo celular</h3><p>Use um segundo aparelho como controle, por QR, na mesma rede Wi-Fi. Também aceita gamepad Bluetooth/USB.</p></div>
+      <div class="feat"><div class="ico">🖥️</div><h3>Filtros de vídeo</h3><p>Nítido, CRT (tubão) ou LCD. Controles na tela tematizados por console e ocultáveis.</p></div>
+      <div class="feat"><div class="ico">🔒</div><h3>Privacidade total</h3><p>Sem conta, sem anúncios, sem rastreio. Tudo fica no seu aparelho.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="telas">
+  <div class="wrap">
+    <p class="eyebrow">Telas</p>
+    <h2 class="title">Dá uma olhada</h2>
+  </div>
+  <div class="wrap">
+    <div class="shots">
+      <figure><div class="phone"><img src="img/inicio.png" alt="Tela inicial do Prisma" loading="lazy"></div><figcaption>Início</figcaption></figure>
+      <figure><div class="phone"><img src="img/biblioteca.png" alt="Biblioteca em grade" loading="lazy"></div><figcaption>Biblioteca</figcaption></figure>
+      <figure><div class="phone"><img src="img/estante.png" alt="Biblioteca na visão estante" loading="lazy"></div><figcaption>Visão estante</figcaption></figure>
+      <figure><div class="phone"><img src="img/ficha.png" alt="Ficha do jogo" loading="lazy"></div><figcaption>Ficha do jogo</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="consoles">
+  <div class="wrap">
+    <p class="eyebrow">Consoles</p>
+    <h2 class="title">Rodam nativos</h2>
+    <div class="chips">
+      <div class="chip">NES</div>
+      <div class="chip">Super Nintendo</div>
+      <div class="chip">Game Boy <span>/ Color</span></div>
+      <div class="chip">Game Boy Advance</div>
+      <div class="chip">Mega Drive <span>/ Genesis</span></div>
+      <div class="chip">Master System</div>
+      <div class="chip">Game Gear</div>
+    </div>
+  </div>
+</section>
+
+<section id="privacidade">
+  <div class="wrap">
+    <div class="priv">
+      <h2 class="title" style="text-align:left;font-size:22px">Grátis, aberto e sem pegadinha</h2>
+      <ul>
+        <li><strong>Grátis pra sempre</strong>, sem anúncios e sem compras dentro do app.</li>
+        <li><strong>Código aberto (GPLv3)</strong> — qualquer um pode auditar e contribuir.</li>
+        <li><strong>Não coleta dados.</strong> A internet é usada só pra baixar capas e a ficha do jogo.</li>
+        <li><strong>Você traz suas ROMs.</strong> O Prisma não distribui jogos nem BIOS.</li>
+      </ul>
+      <p style="margin:16px 0 0"><a href="privacy.html">Política de privacidade →</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/Kurousagin/prisma">GitHub</a>
+    <a href="https://github.com/Kurousagin/prisma/releases">Downloads</a>
+    <a href="privacy.html">Privacidade</a>
+    <a href="mailto:prismaemulator@gmail.com">Contato</a>
+    <p class="fine">Prisma · emulador de clássicos · software livre (GPLv3). Não inclui nem distribui ROMs ou BIOS — use apenas jogos que você tem o direito de usar.</p>
+  </div>
+</footer>
+
+</body>
+</html>
