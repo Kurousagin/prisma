@@ -1,12 +1,19 @@
 package com.pedro.prisma
 
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.pedro.prisma.remote.MonkeyInput
 import com.pedro.prisma.remote.RemoteServer
@@ -19,6 +26,12 @@ class MainActivity : ComponentActivity() {
     private var remote: RemoteServer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // edge-to-edge com ícones claros (barras transparentes sobre fundo escuro).
+        // Obrigatório com targetSdk 35: o Android 15 força edge-to-edge.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         // servidor do "controle pelo celular" (QR) + ponte de entrada rápida
         remote = RemoteServer(applicationContext)
@@ -35,7 +48,9 @@ class MainActivity : ComponentActivity() {
                         kotlinx.coroutines.delay(400)
                     }
                 }
-                PrismaApp(remoteUrl = url)
+                Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                    PrismaApp(remoteUrl = url)
+                }
             }
         }
     }
