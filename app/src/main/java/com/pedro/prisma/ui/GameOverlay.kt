@@ -42,7 +42,8 @@ import java.util.Locale
 
 /** Gamepad + barra superior (pausar / ocultar controles). Pausa concentra save/carregar/reiniciar/sair. */
 @Composable
-fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: () -> Unit) {
+fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, title: String, onExit: () -> Unit) {
+    val ctx = LocalContext.current
     var showSlots by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
     // se já tem um gamepad conectado, começa com o controle touch oculto
@@ -64,6 +65,7 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: ()
     if (paused) PauseMenu(
         onResume = { resume() },
         onSaves = { showSlots = true },
+        onShare = { Screenshot.shareFramed(retro, ctx, title, system) },
         onReset = { runCatching { retro.reset() }; resume() },
         onExit = onExit,
     )
@@ -71,7 +73,7 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, onExit: ()
 }
 
 @Composable
-private fun PauseMenu(onResume: () -> Unit, onSaves: () -> Unit, onReset: () -> Unit, onExit: () -> Unit) {
+private fun PauseMenu(onResume: () -> Unit, onSaves: () -> Unit, onShare: () -> Unit, onReset: () -> Unit, onExit: () -> Unit) {
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = .6f))
             .clickable(remember { MutableInteractionSource() }, indication = null) { onResume() },
@@ -87,6 +89,8 @@ private fun PauseMenu(onResume: () -> Unit, onSaves: () -> Unit, onReset: () -> 
             MenuBtn("▶  Continuar", true, onResume)
             Spacer(Modifier.height(9.dp))
             MenuBtn("💾  Save states", false, onSaves)
+            Spacer(Modifier.height(9.dp))
+            MenuBtn("📸  Compartilhar print", false, onShare)
             Spacer(Modifier.height(9.dp))
             MenuBtn("↻  Reiniciar", false, onReset)
             Spacer(Modifier.height(9.dp))
