@@ -1,5 +1,6 @@
 package com.pedro.prisma
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -131,6 +132,7 @@ class GameActivity : ComponentActivity() {
 
     // Gamepad físico (BLE ou com fio): captura as teclas antes do Compose (que senão
     // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
+    @SuppressLint("RestrictedApi")  // override legítimo; o super chamado é @RestrictedApi do androidx
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
         if (::retroView.isInitialized && isGameKey(code)) {
