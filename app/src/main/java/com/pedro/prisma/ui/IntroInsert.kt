@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,7 +93,8 @@ private fun DrawScope.rr(color: Color, x: Float, y: Float, w: Float, h: Float, r
 fun IntroInsert(system: String, cover: ImageBitmap?, onDone: () -> Unit) {
     val drop = remember { Animatable(0f) }
     var done by remember { mutableStateOf(false) }
-    val finish = { if (!done) { done = true; onDone() } }
+    val track = remember { arrayOfNulls<android.media.AudioTrack>(1) }
+    val finish = { if (!done) { done = true; IntroSound.stop(track[0]); onDone() } }
 
     // geometria (dp) por sistema
     val handheld = system == "Game Boy" || system == "Game Boy Advance"
@@ -110,6 +112,7 @@ fun IntroInsert(system: String, cover: ImageBitmap?, onDone: () -> Unit) {
     val ledOn = drop.value > 0.82f
 
     LaunchedEffect(Unit) {
+        track[0] = IntroSound.play()
         drop.animateTo(1f, keyframes {
             durationMillis = 1550
             0f at 0; 1.05f at 1250; 1f at 1550
@@ -117,6 +120,7 @@ fun IntroInsert(system: String, cover: ImageBitmap?, onDone: () -> Unit) {
         delay(750)
         finish()
     }
+    DisposableEffect(Unit) { onDispose { IntroSound.stop(track[0]) } }
 
     Box(
         Modifier.fillMaxSize()
