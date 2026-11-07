@@ -34,6 +34,7 @@
   }
   h1,h2,h3{font-family:Fredoka,Inter,sans-serif; line-height:1.15; text-wrap:balance; margin:0}
   a{color:var(--acc2); text-decoration:none}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.9em; background:rgba(124,77,255,.14); padding:1px 6px; border-radius:5px; color:var(--fg)}
   img{max-width:100%; display:block}
   .wrap{max-width:1080px; margin:0 auto; padding-left:var(--gut); padding-right:max(20px,env(safe-area-inset-right,0px))}
 
@@ -113,13 +114,30 @@
   .priv ul{margin:14px 0 0; padding-left:20px; color:var(--dim)}
   .priv li{margin:6px 0}
 
+  /* novidades (feed de lançamento) */
+  .feed{max-width:720px; margin:34px auto 0; display:flex; flex-direction:column; gap:16px}
+  .entry{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px}
+  .entry .head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+  .entry .ver{font-family:Fredoka,sans-serif; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--acc),var(--acc2)); padding:3px 12px; border-radius:999px; font-size:14px}
+  .entry .now{font-size:12px; font-weight:600; color:var(--green); border:1px solid rgba(86,227,159,.4); padding:2px 9px; border-radius:999px}
+  .entry .date{color:var(--faint); font-size:13px; margin-left:auto}
+  .entry ul{margin:0; padding-left:22px; color:var(--dim)}
+  .entry li{margin:7px 0}
+  .entry li strong{color:var(--fg); font-weight:600}
+
   footer{border-top:1px solid var(--line); padding-block:34px; text-align:center; color:var(--faint); font-size:14px}
   footer a{margin:0 10px; color:var(--dim)}
   footer .fine{margin-top:14px; font-size:12.5px; color:var(--faint)}
 
-  @media (max-width:760px){
+  @media (max-width:980px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:640px){
     .steps,.grid{grid-template-columns:1fr}
     header.hero{padding-block:34px 4px}
+    section{padding-block:38px}
+    .btn{font-size:17px; padding:15px 26px}
+    .entry .date{margin-left:0; width:100%}
   }
 </style>
 </head>
@@ -128,16 +146,16 @@
 <header class="hero">
   <div class="wrap">
     <img class="banner" src="img/feature.png" alt="Prisma — emulador de clássicos retrô" width="1024" height="500">
-    <p class="tag">Transforme seu Android numa consola clássica. Com as suas próprias ROMs.</p>
+    <p class="tag">Transforme seu Android num console clássico. Com as suas próprias ROMs.</p>
     <div class="badges">
       <span class="badge g">● Grátis pra sempre</span>
       <span class="badge p">● Sem anúncios</span>
       <span class="badge b">● Código aberto (GPLv3)</span>
     </div>
     <div class="cta">
-      <a class="btn" href="https://github.com/Kurousagin/prisma/releases/download/v1.0/Prisma-1.0.apk">
+      <a class="btn" href="https://github.com/Kurousagin/prisma/releases/download/v1.0.1/Prisma-1.0.1.apk">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-        Baixar APK · v1.0
+        Baixar APK · v1.0.1
       </a>
       <p class="meta">Android 12+ · ~24 MB · <a href="https://github.com/Kurousagin/prisma/releases">todas as versões</a></p>
     </div>
@@ -167,6 +185,7 @@
       <div class="feat"><div class="ico">📚</div><h3>Biblioteca do seu jeito</h3><p>Filtre por console, ordene e alterne entre grade e a visão “estante”. Sua escolha fica salva.</p></div>
       <div class="feat"><div class="ico">📖</div><h3>Ficha do jogo</h3><p>Ano, gênero e uma sinopse curta (da Wikipédia), guardados no aparelho.</p></div>
       <div class="feat"><div class="ico">💾</div><h3>Save states + continua sozinho</h3><p>Vários saves por jogo, com miniatura e data. E ao sair, você volta exatamente de onde parou.</p></div>
+      <div class="feat"><div class="ico">☁️</div><h3>Backup dos saves</h3><p>Exporte, restaure e compartilhe seus saves num .zip. Troque de celular ou reinstale sem perder o progresso.</p></div>
       <div class="feat"><div class="ico">📸</div><h3>Compartilhar print</h3><p>Capture o jogo numa moldura de TV retrô e mande pra onde quiser.</p></div>
       <div class="feat"><div class="ico">📱</div><h3>Controle pelo celular</h3><p>Use um segundo aparelho como controle, por QR, na mesma rede Wi-Fi. Também aceita gamepad Bluetooth/USB.</p></div>
       <div class="feat"><div class="ico">🖥️</div><h3>Filtros de vídeo</h3><p>Nítido, CRT (tubão) ou LCD. Controles na tela tematizados por console e ocultáveis.</p></div>
@@ -186,6 +205,37 @@
       <figure><div class="phone"><img src="img/biblioteca.png" alt="Biblioteca em grade" loading="lazy"></div><figcaption>Biblioteca</figcaption></figure>
       <figure><div class="phone"><img src="img/estante.png" alt="Biblioteca na visão estante" loading="lazy"></div><figcaption>Visão estante</figcaption></figure>
       <figure><div class="phone"><img src="img/ficha.png" alt="Ficha do jogo" loading="lazy"></div><figcaption>Ficha do jogo</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="novidades">
+  <div class="wrap">
+    <p class="eyebrow">Novidades</p>
+    <h2 class="title">O que há de novo</h2>
+    <p class="lead">Atualizações do Prisma, da mais recente pra mais antiga.</p>
+    <div class="feed">
+      <article class="entry">
+        <div class="head">
+          <span class="ver">v1.0.1</span>
+          <span class="now">● Atual</span>
+          <span class="date">7 de nov. de 2026</span>
+        </div>
+        <ul>
+          <li>🐛 <strong>Tela preta nos jogos corrigida.</strong> Os cores de emulação agora carregam no APK de instalação — antes só funcionava em build de desenvolvimento.</li>
+          <li>☁️ <strong>Backup dos saves.</strong> Em Ajustes, exporte seus save states num <code>.zip</code>, restaure depois e compartilhe — pra trocar de celular ou reinstalar sem perder o progresso.</li>
+        </ul>
+      </article>
+      <article class="entry">
+        <div class="head">
+          <span class="ver">v1.0</span>
+          <span class="date">7 de nov. de 2026</span>
+        </div>
+        <ul>
+          <li>🎉 <strong>Primeira versão pública.</strong> NES, Super Nintendo, Game Boy/Color, GBA e Mega Drive rodando nativo.</li>
+          <li>📚 Biblioteca com capas automáticas, visão grade/estante, ficha do jogo, save states, controle pelo celular (QR) e filtros de vídeo (CRT/LCD).</li>
+        </ul>
+      </article>
     </div>
   </div>
 </section>
