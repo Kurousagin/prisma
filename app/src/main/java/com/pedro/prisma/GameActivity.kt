@@ -1,5 +1,6 @@
 package com.pedro.prisma
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -35,7 +36,13 @@ class GameActivity : ComponentActivity() {
             if (romUri.scheme == "file") {
                 gameFilePath = romUri.path
             } else {
-                gameFileBytes = contentResolver.openInputStream(romUri)!!.use { it.readBytes() }  // SAF
+                // SAF: grava num arquivo temp COM a extensão certa e passa o caminho.
+                // Cores multi-sistema (genesis_plus_gx: MD/SMS/GG) precisam da extensão —
+                // carregar só por bytes falha ("Cannot load game").
+                val ext = (romUri.lastPathSegment ?: "").substringAfterLast('.', "rom")
+                val tmp = File(cacheDir, "currentrom.$ext")
+                contentResolver.openInputStream(romUri)!!.use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+                gameFilePath = tmp.absolutePath
             }
             systemDirectory = filesDir.absolutePath
             savesDirectory = filesDir.absolutePath
@@ -48,8 +55,10 @@ class GameActivity : ComponentActivity() {
         val root = FrameLayout(this)
         root.addView(retroView)
         system = intent.getStringExtra("system") ?: ""
-        root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key) { finish() } } })
+        val gameTitle = intent.getStringExtra("title") ?: key
+        root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key, gameTitle) { finish() } } })
         setContentView(root)
+        goFullscreen()                                      // tela cheia: esconde a barra de status/navegação
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
         com.pedro.prisma.remote.InputBus.system = system
 
@@ -87,6 +96,20 @@ class GameActivity : ComponentActivity() {
         com.pedro.prisma.remote.InputBus.system = system
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) goFullscreen()   // reaplica se as barras reaparecerem
+    }
+
+    /** Tela cheia imersiva (esconde status/navegação; aparecem só ao deslizar da borda). */
+    private fun goFullscreen() {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
     override fun onPause() {
         com.pedro.prisma.remote.InputBus.view = null
@@ -109,6 +132,7 @@ class GameActivity : ComponentActivity() {
 
     // Gamepad físico (BLE ou com fio): captura as teclas antes do Compose (que senão
     // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
+    @SuppressLint("RestrictedApi")  // override legítimo; o super chamado é @RestrictedApi do androidx
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
         if (::retroView.isInitialized && isGameKey(code)) {

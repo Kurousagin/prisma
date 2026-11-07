@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -69,7 +72,7 @@ fun PrismaApp(remoteUrl: String?) {
     val ctx = LocalContext.current
     var tab by remember { mutableStateOf("home") }
     var detail by remember { mutableStateOf<GameEntry?>(null) }
-    var libFilter by remember { mutableStateOf("Todos") }
+    var libFilter by remember { mutableStateOf(LibPrefs.filter(ctx)) }
     var reload by remember { mutableStateOf(0) }
 
     var games by remember { mutableStateOf<List<GameEntry>?>(null) }
@@ -104,8 +107,8 @@ fun PrismaApp(remoteUrl: String?) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
-                        "lib" -> LibraryTab(list, libFilter, { libFilter = it }, onOpen = { detail = it })
+                        "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; LibPrefs.set(ctx, "filter", sys); tab = "lib" })
+                        "lib" -> LibraryTab(list, libFilter, { libFilter = it; LibPrefs.set(ctx, "filter", it) }, onOpen = { detail = it })
                         "config" -> SettingsTab(pickFolder)
                         else -> SupportTab()
                     }
@@ -296,24 +299,43 @@ private fun ConsoleGlyph() {
 /* ---------------- Biblioteca ---------------- */
 @Composable
 private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String) -> Unit, onOpen: (GameEntry) -> Unit) {
+    val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
-    val systems = listOf("Todos") + Games.systems.map { it.label }
+    var sort by remember { mutableStateOf(LibPrefs.sort(ctx)) }   // az | recent
+    var view by remember { mutableStateOf(LibPrefs.view(ctx)) }  // grade | estante
+    val systems = listOf("Todos", "★ Favoritos") + Games.systems.map { it.label }
     val q = query.trim()
+    val favs = Favorites.all(ctx)
     val shown = games.filter {
-        (filter == "Todos" || it.system.label == filter) &&
-            (q.isEmpty() || it.title.contains(q, ignoreCase = true))
-    }
+        val okFilter = when (filter) {
+            "Todos" -> true
+            "★ Favoritos" -> favs.contains(Games.stateKey(it))
+            else -> it.system.label == filter
+        }
+        okFilter && (q.isEmpty() || it.title.contains(q, ignoreCase = true))
+    }.let { l -> if (sort == "recent") l.sortedByDescending { it.added } else l.sortedBy { it.title.lowercase() } }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         AppBar("Biblioteca")
         SearchField(query) { query = it }
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             systems.forEach { s -> FilterChip(s, s == filter) { onFilter(s) } }
         }
-        Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp,
-            modifier = Modifier.padding(bottom = 8.dp))
+        Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp)
+            Spacer(Modifier.width(10.dp))
+            SortChip("▦", view == "grade") { view = "grade"; LibPrefs.set(ctx, "view", "grade") }
+            Spacer(Modifier.width(6.dp))
+            SortChip("▤", view == "estante") { view = "estante"; LibPrefs.set(ctx, "view", "estante") }
+            Spacer(Modifier.weight(1f))
+            SortChip("A-Z", sort == "az") { sort = "az"; LibPrefs.set(ctx, "sort", "az") }
+            Spacer(Modifier.width(6.dp))
+            SortChip("Recentes", sort == "recent") { sort = "recent"; LibPrefs.set(ctx, "sort", "recent") }
+        }
         if (shown.isEmpty()) {
             Text("Nenhum jogo encontrado.", color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 32.dp))
+        } else if (view == "estante") {
+            ShelfView(shown, onOpen)
         } else LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(11.dp),
@@ -324,6 +346,47 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
                 BoxArt(g, Modifier.aspectRatio(3f / 3.9f).clickable { onOpen(g) })
             }
         }
+    }
+}
+
+/** Visão "estante": capas em pé sobre prateleiras de madeira. */
+@Composable
+private fun ShelfView(games: List<GameEntry>, onOpen: (GameEntry) -> Unit) {
+    LazyColumn(Modifier.fillMaxSize()) {
+        items(games.chunked(3), key = { it.first().uri.toString() }) { row ->
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                row.forEach { g ->
+                    BoxArt(
+                        g,
+                        Modifier.weight(1f).aspectRatio(3f / 3.9f)
+                            .shadow(10.dp, RoundedCornerShape(10.dp), clip = false)
+                            .clickable { onOpen(g) },
+                    )
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Plank()
+        }
+    }
+}
+
+/** Tábua de madeira da prateleira (frente + sombra projetada embaixo). */
+@Composable
+private fun Plank() {
+    Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+        Box(Modifier.fillMaxWidth().height(3.dp).background(Color(0x40FFFFFF)))  // quina iluminada
+        Box(
+            Modifier.fillMaxWidth().height(18.dp)
+                .background(Brush.verticalGradient(listOf(Color(0xFF6E4B2E), Color(0xFF3C2817)))),
+        )
+        Box(
+            Modifier.fillMaxWidth().height(12.dp)
+                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .4f), Color.Transparent))),
+        )
     }
 }
 
@@ -360,6 +423,16 @@ private fun FilterChip(label: String, on: Boolean, onClick: () -> Unit) {
     ) { Text(label, color = if (on) Color.White else P.dim, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) }
 }
 
+@Composable
+private fun SortChip(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(999.dp))
+            .background(if (on) P.card2 else Color.Transparent)
+            .border(1.dp, if (on) P.p1 else P.line, RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 5.dp),
+    ) { Text(label, color = if (on) P.p2 else P.dim, fontSize = 11.5.sp, fontWeight = FontWeight.Bold) }
+}
+
 /* ---------------- Detalhe ---------------- */
 @Composable
 private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
@@ -367,6 +440,7 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
     val resumes = inProgress(ctx, g)
     var showQr by remember { mutableStateOf(false) }
     var coverV by remember { mutableStateOf(0) }
+    var fav by remember { mutableStateOf(Favorites.contains(ctx, Games.stateKey(g))) }
     val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val bytes = runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
@@ -386,17 +460,21 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Row(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 BoxArt(g, Modifier.width(92.dp).height(112.dp), coverV)
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(g.title, color = P.ink, fontSize = 21.sp, fontWeight = FontWeight.Bold, lineHeight = 23.sp)
                     Text(g.system.label, color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                     Text(if (resumes) "em andamento" else "novo jogo", color = P.faint, fontSize = 12.5.sp)
                 }
+                Text(
+                    if (fav) "★" else "☆", fontSize = 26.sp, color = if (fav) Color(0xFFE8B84A) else P.dim,
+                    modifier = Modifier.clickable { fav = Favorites.toggle(ctx, Games.stateKey(g)) }.padding(4.dp),
+                )
             }
             Spacer(Modifier.height(18.dp))
             if (resumes) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.weight(1f).clip(RoundedCornerShape(15.dp)).background(P.grad)
+                        Modifier.weight(1f).clip(RoundedCornerShape(15.dp)).background(consoleGrad(g.system.label))
                             .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
                         contentAlignment = Alignment.Center,
                     ) { Text("▶ CONTINUAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
@@ -410,11 +488,15 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
                     modifier = Modifier.padding(top = 8.dp))
             } else {
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(P.grad)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(consoleGrad(g.system.label))
                         .clickable { Games.launch(ctx, g, "auto") }.padding(vertical = 15.dp),
                     contentAlignment = Alignment.Center,
                 ) { Text("▶ JOGAR", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
             }
+            val info by produceState<GameInfo.Info?>(null, g.uri) {
+                value = withContext(Dispatchers.IO) { GameInfo.get(ctx, g.title) }
+            }
+            info?.let { AboutSection(it) }
             val savedSlots = remember(g.uri) { StateSlots.list(ctx, Games.stateKey(g)) }.filter { it.used }
             if (savedSlots.isNotEmpty()) {
                 Section("Carregar estado")
@@ -433,6 +515,37 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
         }
     }
     if (showQr) QrDialog(remoteUrl) { showQr = false }
+}
+
+@Composable
+private fun AboutSection(info: GameInfo.Info) {
+    var expanded by remember { mutableStateOf(false) }
+    Section("Sobre o jogo")
+    if (info.year != null || info.genre != null) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 10.dp)) {
+            info.year?.let { InfoChip("📅 $it") }
+            info.genre?.let { InfoChip("🎯 ${it.replaceFirstChar { c -> c.uppercase() }}") }
+        }
+    }
+    Text(
+        info.about, color = P.dim, fontSize = 13.sp, lineHeight = 19.sp,
+        maxLines = if (expanded) Int.MAX_VALUE else 4, overflow = TextOverflow.Ellipsis,
+    )
+    if (info.about.length > 160) {
+        Text(
+            if (expanded) "ver menos" else "ver mais", color = P.p2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 4.dp).clickable { expanded = !expanded },
+        )
+    }
+    Text("Fonte: Wikipédia", color = P.faint, fontSize = 10.5.sp, modifier = Modifier.padding(top = 6.dp))
+}
+
+@Composable
+private fun InfoChip(text: String) {
+    Box(
+        Modifier.clip(RoundedCornerShape(999.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+    ) { Text(text, color = P.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable

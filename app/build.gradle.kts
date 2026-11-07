@@ -15,12 +15,12 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.pedro.prisma"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.pedro.prisma"
         minSdk = 31           // blur real (RenderEffect) a partir do Android 12
-        targetSdk = 34
+        targetSdk = 35        // exigido pela Play Store (apps novos) desde ago/2025
         versionCode = 1
         versionName = "1.0"
     }
