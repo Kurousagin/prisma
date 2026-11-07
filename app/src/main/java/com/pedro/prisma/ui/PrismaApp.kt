@@ -72,7 +72,7 @@ fun PrismaApp(remoteUrl: String?) {
     val ctx = LocalContext.current
     var tab by remember { mutableStateOf("home") }
     var detail by remember { mutableStateOf<GameEntry?>(null) }
-    var libFilter by remember { mutableStateOf("Todos") }
+    var libFilter by remember { mutableStateOf(LibPrefs.filter(ctx)) }
     var reload by remember { mutableStateOf(0) }
 
     var games by remember { mutableStateOf<List<GameEntry>?>(null) }
@@ -107,8 +107,8 @@ fun PrismaApp(remoteUrl: String?) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
-                        "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; tab = "lib" })
-                        "lib" -> LibraryTab(list, libFilter, { libFilter = it }, onOpen = { detail = it })
+                        "home" -> HomeTab(list, pickFolder, onOpen = { detail = it }, onConsole = { sys -> libFilter = sys; LibPrefs.set(ctx, "filter", sys); tab = "lib" })
+                        "lib" -> LibraryTab(list, libFilter, { libFilter = it; LibPrefs.set(ctx, "filter", it) }, onOpen = { detail = it })
                         "config" -> SettingsTab(pickFolder)
                         else -> SupportTab()
                     }
@@ -301,8 +301,8 @@ private fun ConsoleGlyph() {
 private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String) -> Unit, onOpen: (GameEntry) -> Unit) {
     val ctx = LocalContext.current
     var query by remember { mutableStateOf("") }
-    var sort by remember { mutableStateOf("az") }   // az | recent
-    var view by remember { mutableStateOf("grade") }  // grade | estante
+    var sort by remember { mutableStateOf(LibPrefs.sort(ctx)) }   // az | recent
+    var view by remember { mutableStateOf(LibPrefs.view(ctx)) }  // grade | estante
     val systems = listOf("Todos", "★ Favoritos") + Games.systems.map { it.label }
     val q = query.trim()
     val favs = Favorites.all(ctx)
@@ -324,13 +324,13 @@ private fun LibraryTab(games: List<GameEntry>, filter: String, onFilter: (String
         Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("${shown.size} ${if (shown.size == 1) "jogo" else "jogos"}", color = P.faint, fontSize = 11.5.sp)
             Spacer(Modifier.width(10.dp))
-            SortChip("▦", view == "grade") { view = "grade" }
+            SortChip("▦", view == "grade") { view = "grade"; LibPrefs.set(ctx, "view", "grade") }
             Spacer(Modifier.width(6.dp))
-            SortChip("▤", view == "estante") { view = "estante" }
+            SortChip("▤", view == "estante") { view = "estante"; LibPrefs.set(ctx, "view", "estante") }
             Spacer(Modifier.weight(1f))
-            SortChip("A-Z", sort == "az") { sort = "az" }
+            SortChip("A-Z", sort == "az") { sort = "az"; LibPrefs.set(ctx, "sort", "az") }
             Spacer(Modifier.width(6.dp))
-            SortChip("Recentes", sort == "recent") { sort = "recent" }
+            SortChip("Recentes", sort == "recent") { sort = "recent"; LibPrefs.set(ctx, "sort", "recent") }
         }
         if (shown.isEmpty()) {
             Text("Nenhum jogo encontrado.", color = P.dim, fontSize = 13.sp, modifier = Modifier.padding(top = 32.dp))
