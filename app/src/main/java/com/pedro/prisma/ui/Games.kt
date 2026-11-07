@@ -20,15 +20,15 @@ object Games {
 
     // Só consoles que rodam NATIVO no app — foco: rodar liso em hardware fraco.
     val systems = listOf(
-        GameSystem("NES", setOf("nes"), "fceumm_libretro_android.so",
+        GameSystem("NES", setOf("nes"), "libfceumm_libretro_android.so",
             "Nintendo - Nintendo Entertainment System"),
-        GameSystem("Super Nintendo", setOf("smc", "sfc"), "snes9x_libretro_android.so",
+        GameSystem("Super Nintendo", setOf("smc", "sfc"), "libsnes9x_libretro_android.so",
             "Nintendo - Super Nintendo Entertainment System"),
-        GameSystem("Game Boy", setOf("gb", "gbc"), "gambatte_libretro_android.so",
+        GameSystem("Game Boy", setOf("gb", "gbc"), "libgambatte_libretro_android.so",
             "Nintendo - Game Boy"),
-        GameSystem("Game Boy Advance", setOf("gba"), "mgba_libretro_android.so",
+        GameSystem("Game Boy Advance", setOf("gba"), "libmgba_libretro_android.so",
             "Nintendo - Game Boy Advance"),
-        GameSystem("Mega Drive", setOf("md", "gen", "smd", "sms", "gg"), "genesis_plus_gx_libretro_android.so",
+        GameSystem("Mega Drive", setOf("md", "gen", "smd", "sms", "gg"), "libgenesis_plus_gx_libretro_android.so",
             "Sega - Mega Drive - Genesis"),
     )
     private val byExt = systems.flatMap { s -> s.exts.map { it to s } }.toMap()
