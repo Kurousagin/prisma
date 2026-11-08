@@ -23,6 +23,7 @@ class GameActivity : ComponentActivity() {
     private var system: String = ""
     private var key: String = "game"
     private var loaded = false   // carrega o estado só uma vez (não reverte ao voltar pro app)
+    private var ctrlMap: Map<Int, Int> = emptyMap()   // mapeamento do controle físico (se o usuário configurou)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +31,7 @@ class GameActivity : ComponentActivity() {
         val romUri = intent.getStringExtra("rom")?.let { android.net.Uri.parse(it) } ?: return finish()
         key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
         stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "$key.state") }
+        ctrlMap = com.pedro.prisma.ui.ControllerPrefs.retroMap(this)
 
         val data = GLRetroViewData(this).apply {
             coreFilePath = "${applicationInfo.nativeLibraryDir}/$core"
@@ -134,13 +136,17 @@ class GameActivity : ComponentActivity() {
     // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
     @SuppressLint("RestrictedApi")  // override legítimo; o super chamado é @RestrictedApi do androidx
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val code = event.keyCode
-        if (::retroView.isInitialized && isGameKey(code)) {
-            when (event.action) {
-                KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, code)
-                KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, code)
+        if (::retroView.isInitialized) {
+            // mapeamento do usuário tem prioridade; senão, reconhecimento padrão
+            val code = event.keyCode
+            val out = ctrlMap[code] ?: if (isGameKey(code)) code else null
+            if (out != null) {
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, out)
+                    KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, out)
+                }
+                return true
             }
-            return true
         }
         return super.dispatchKeyEvent(event)
     }
