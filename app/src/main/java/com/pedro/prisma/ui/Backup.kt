@@ -40,6 +40,7 @@ object Backup {
         val doc = DocumentFile.fromTreeUri(ctx, treeUri)?.createFile("application/zip", name) ?: return null
         return runCatching {
             ctx.contentResolver.openOutputStream(doc.uri)!!.use { writeZip(ctx, files, it) }
+            Achievements.onBackup(ctx)
             name
         }.getOrNull()
     }
@@ -59,6 +60,7 @@ object Backup {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             ctx.startActivity(Intent.createChooser(send, "Compartilhar saves").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            Achievements.onBackup(ctx)
         }.onFailure { Toast.makeText(ctx, "Não consegui compartilhar", Toast.LENGTH_SHORT).show() }
     }
 

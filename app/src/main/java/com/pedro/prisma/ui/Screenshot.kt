@@ -29,7 +29,7 @@ object Screenshot {
                 if (res != PixelCopy.SUCCESS) { toastFail(ctx); return@request }
                 val framed = runCatching { compose(frame, systemColor(system).toArgb(), title, system) }.getOrNull()
                 if (framed == null) { toastFail(ctx); return@request }
-                runCatching { share(ctx, framed) }.onFailure { toastFail(ctx) }
+                runCatching { share(ctx, framed) }.onSuccess { Achievements.onShare(ctx) }.onFailure { toastFail(ctx) }
             }, Handler(Looper.getMainLooper()))
         }.onFailure { toastFail(ctx) }
     }

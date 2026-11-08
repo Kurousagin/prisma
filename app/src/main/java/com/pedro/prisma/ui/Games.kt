@@ -67,6 +67,7 @@ object Games {
 
     /** load: "auto" (continua do auto-save), "new" (começa do zero) ou "1".."3" (carrega o slot). */
     fun launch(context: Context, entry: GameEntry, load: String = "auto") {
+        Achievements.onGameLaunched(context, entry.title, entry.system.label)
         val intent = Intent(context, com.pedro.prisma.GameActivity::class.java)
             .putExtra("core", entry.system.core)
             .putExtra("rom", entry.uri.toString())
