@@ -8,7 +8,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import android.view.KeyEvent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -678,7 +681,81 @@ private fun SettingsTab(onPickFolder: () -> Unit) {
         AnimSettingCard()
         Spacer(Modifier.height(14.dp))
         BackupCard()
+        Spacer(Modifier.height(14.dp))
+        ControllerCard()
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ControllerCard() {
+    val ctx = LocalContext.current
+    var show by remember { mutableStateOf(false) }
+    val mapped = remember(show) { ControllerPrefs.isMapped(ctx) }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+    ) {
+        Text("Controle físico", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Mapeie qualquer controle USB ou Bluetooth (Switch, Xbox, SNES USB, qualquer marca) — aperte cada botão e o Prisma aprende.",
+            color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        PillButton(if (mapped) "🎮 Reconfigurar controle" else "🎮 Configurar controle", true, Modifier.fillMaxWidth()) { show = true }
+    }
+    if (show) ControllerDialog { show = false }
+}
+
+private fun keyLabel(code: Int?): String =
+    if (code == null) "—" else KeyEvent.keyCodeToString(code).removePrefix("KEYCODE_")
+
+@Composable
+private fun ControllerDialog(onClose: () -> Unit) {
+    val ctx = LocalContext.current
+    var version by remember { mutableStateOf(0) }
+    var waitingFor by remember { mutableStateOf<String?>(null) }
+
+    // enquanto aguarda, a próxima tecla (capturada no MainActivity) vira o mapeamento
+    DisposableEffect(waitingFor) {
+        KeyCapture.onKey = waitingFor?.let { label ->
+            { code: Int -> ControllerPrefs.set(ctx, label, code); waitingFor = null; version++ }
+        }
+        onDispose { KeyCapture.onKey = null }
+    }
+
+    Dialog(onDismissRequest = onClose) {
+        Column(Modifier.width(360.dp).clip(RoundedCornerShape(20.dp)).background(P.card2).padding(18.dp)) {
+            Text("Configurar controle", color = P.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("Toque em “Mapear” e pressione o botão no controle. Vale pra USB e Bluetooth de qualquer marca.",
+                color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
+                ControllerPrefs.ACTIONS.forEach { (label, _) ->
+                    val phys = remember(version) { ControllerPrefs.physicalFor(ctx, label) }
+                    val waiting = waitingFor == label
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(label, color = P.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(96.dp))
+                        Text(
+                            if (waiting) "pressione…" else keyLabel(phys),
+                            color = if (waiting) Color(0xFF9B7CFF) else P.dim, fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Box(
+                            Modifier.clip(RoundedCornerShape(999.dp))
+                                .background(if (waiting) P.grad else androidx.compose.ui.graphics.SolidColor(P.card))
+                                .border(1.dp, P.line, RoundedCornerShape(999.dp))
+                                .clickable { waitingFor = if (waiting) null else label }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                        ) { Text(if (waiting) "…" else "Mapear", color = if (waiting) Color.White else P.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PillButton("Limpar tudo", false, Modifier.weight(1f)) { ControllerPrefs.clearAll(ctx); version++; waitingFor = null }
+                PillButton("Fechar", true, Modifier.weight(1f)) { onClose() }
+            }
+        }
     }
 }
 
