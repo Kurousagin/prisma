@@ -159,7 +159,6 @@ private fun SlotSheet(retro: GLRetroView, stateKey: String, onAfterLoad: () -> U
                     onSave = {
                         StateSlots.save(retro, ctx, stateKey, s.n) {
                             version++
-                            Achievements.onSaveState(ctx)
                             Toast.makeText(ctx, "Salvo no slot ${s.n}", Toast.LENGTH_SHORT).show()
                         }
                     },

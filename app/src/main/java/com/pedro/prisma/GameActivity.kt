@@ -24,7 +24,6 @@ class GameActivity : ComponentActivity() {
     private var key: String = "game"
     private var loaded = false   // carrega o estado só uma vez (não reverte ao voltar pro app)
     private var ctrlMap: Map<Int, Int> = emptyMap()   // mapeamento do controle físico (se o usuário configurou)
-    private var resumeAt = 0L                          // marca do onResume p/ somar tempo de jogo (conquista)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,7 +101,6 @@ class GameActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        resumeAt = android.os.SystemClock.elapsedRealtime()
         com.pedro.prisma.remote.InputBus.view = retroView
         com.pedro.prisma.remote.InputBus.system = system
     }
@@ -125,10 +123,6 @@ class GameActivity : ComponentActivity() {
     override fun onPause() {
         com.pedro.prisma.remote.InputBus.view = null
         com.pedro.prisma.remote.InputBus.system = ""
-        if (resumeAt > 0L) {
-            com.pedro.prisma.ui.Achievements.addPlaytime(this, android.os.SystemClock.elapsedRealtime() - resumeAt)
-            resumeAt = 0L
-        }
         val f = stateFile
         if (f != null) runCatching { f.writeBytes(retroView.serializeState()) }
         super.onPause()
