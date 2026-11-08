@@ -2,7 +2,6 @@ package com.pedro.prisma
 
 import android.graphics.Color as AndroidColor
 import android.os.Bundle
-import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -55,21 +54,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // Captura de tecla pra tela "Configurar controle": aprende qualquer botão de
-    // controle (inclusive USB fora do padrão). Ignora teclas do sistema.
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val cb = com.pedro.prisma.ui.KeyCapture.onKey
-        if (cb != null && event.action == KeyEvent.ACTION_DOWN && !isSystemKey(event.keyCode)) {
-            cb(event.keyCode)
-            return true
-        }
-        return super.dispatchKeyEvent(event)
-    }
-
-    private fun isSystemKey(k: Int) = k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_HOME ||
-        k == KeyEvent.KEYCODE_APP_SWITCH || k == KeyEvent.KEYCODE_VOLUME_UP ||
-        k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_MUTE || k == KeyEvent.KEYCODE_POWER
 
     override fun onDestroy() {
         super.onDestroy()
