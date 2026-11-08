@@ -58,7 +58,14 @@ class GameActivity : ComponentActivity() {
         root.addView(retroView)
         system = intent.getStringExtra("system") ?: ""
         val gameTitle = intent.getStringExtra("title") ?: key
-        root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key, gameTitle) { finish() } } })
+        root.addView(ComposeView(this).apply {
+            setContent {
+                com.pedro.prisma.ui.GameOverlay(
+                    retroView, system, key, gameTitle,
+                    onReloadMap = { ctrlMap = com.pedro.prisma.ui.ControllerPrefs.retroMap(this@GameActivity) },
+                ) { finish() }
+            }
+        })
         setContentView(root)
         goFullscreen()                                      // tela cheia: esconde a barra de status/navegação
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
@@ -136,6 +143,14 @@ class GameActivity : ComponentActivity() {
     // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
     @SuppressLint("RestrictedApi")  // override legítimo; o super chamado é @RestrictedApi do androidx
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // tela de mapeamento (no menu de pausa) aguardando um botão: aprende e consome.
+        // Captura aqui porque o gamepad físico já chega neste dispatchKeyEvent (um Compose
+        // Dialog não recebe — é janela separada; por isso o mapeamento mora inline no overlay).
+        val cap = com.pedro.prisma.ui.KeyCapture.onKey
+        if (cap != null && event.action == KeyEvent.ACTION_DOWN && !isSystemKey(event.keyCode)) {
+            cap(event.keyCode)
+            return true
+        }
         if (::retroView.isInitialized) {
             // mapeamento do usuário tem prioridade; senão, reconhecimento padrão
             val code = event.keyCode
@@ -150,6 +165,10 @@ class GameActivity : ComponentActivity() {
         }
         return super.dispatchKeyEvent(event)
     }
+
+    private fun isSystemKey(k: Int) = k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_HOME ||
+        k == KeyEvent.KEYCODE_APP_SWITCH || k == KeyEvent.KEYCODE_VOLUME_UP ||
+        k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_MUTE || k == KeyEvent.KEYCODE_POWER
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         retroView.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
