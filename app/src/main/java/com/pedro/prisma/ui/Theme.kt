@@ -25,7 +25,7 @@ fun systemColor(sys: String): Color = when (sys) {
     "NES" -> Color(0xFFE0485A)
     "Mega Drive" -> Color(0xFF2FA0DE)
     "Game Boy" -> Color(0xFF36B06A)
-    "Nintendo 64" -> Color(0xFF36B06A)
+    "Nintendo 64" -> Color(0xFFE0A52F)
     else -> Color(0xFF7C4DFF)
 }
 
