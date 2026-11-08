@@ -9,6 +9,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -441,12 +443,13 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val resumes = inProgress(ctx, g)
     var showQr by remember { mutableStateOf(false) }
+    var showAchievements by remember { mutableStateOf(false) }
     var coverV by remember { mutableStateOf(0) }
     var fav by remember { mutableStateOf(Favorites.contains(ctx, Games.stateKey(g))) }
     val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val bytes = runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-            if (bytes != null) { Covers.saveUserCover(ctx, g, bytes); coverV++ }
+            if (bytes != null) { Covers.saveUserCover(ctx, g, bytes); Achievements.onCoverChanged(ctx); coverV++ }
         }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -510,12 +513,13 @@ private fun GameDetail(g: GameEntry, remoteUrl: String?, onBack: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ExtraTile("🎮", "Controle\npelo celular", Modifier.weight(1f)) { showQr = true }
                 ExtraTile("🖼️", "Trocar\ncapa", Modifier.weight(1f)) { pickCover.launch("image/*") }
-                ExtraTile("🏆", "Conquistas\nem breve", Modifier.weight(1f)) {}
+                ExtraTile("🏆", "Conquistas", Modifier.weight(1f)) { showAchievements = true }
             }
             Spacer(Modifier.height(20.dp))
         }
     }
     if (showQr) QrDialog(remoteUrl) { showQr = false }
+    if (showAchievements) ConquistasDialog { showAchievements = false }
 }
 
 @Composable
@@ -678,7 +682,60 @@ private fun SettingsTab(onPickFolder: () -> Unit) {
         AnimSettingCard()
         Spacer(Modifier.height(14.dp))
         BackupCard()
+        Spacer(Modifier.height(14.dp))
+        ConquistasCard()
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ConquistasCard() {
+    val ctx = LocalContext.current
+    var show by remember { mutableStateOf(false) }
+    val got = remember(show) { Achievements.count(ctx) }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(P.card)
+            .border(1.dp, P.line, RoundedCornerShape(18.dp)).padding(15.dp),
+    ) {
+        Text("Conquistas", color = P.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Marcos de uso do app, guardados no aparelho — sem conta, sem internet.",
+            color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        PillButton("🏆 Ver conquistas ($got/${Achievements.ALL.size})", true, Modifier.fillMaxWidth()) { show = true }
+    }
+    if (show) ConquistasDialog { show = false }
+}
+
+@Composable
+private fun ConquistasDialog(onClose: () -> Unit) {
+    val ctx = LocalContext.current
+    val unlocked = remember { Achievements.unlocked(ctx) }
+    Dialog(onDismissRequest = onClose) {
+        Column(Modifier.width(360.dp).clip(RoundedCornerShape(20.dp)).background(P.card2).padding(18.dp)) {
+            Text("Conquistas", color = P.ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("${unlocked.size} de ${Achievements.ALL.size} desbloqueadas · marcos locais, sem conta.",
+                color = P.dim, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+            Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
+                Achievements.ALL.forEach { a ->
+                    val gotIt = unlocked.contains(a.id)
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (gotIt) P.grad else androidx.compose.ui.graphics.SolidColor(P.card)),
+                            contentAlignment = Alignment.Center,
+                        ) { Text(a.emoji, fontSize = 20.sp, modifier = Modifier.alpha(if (gotIt) 1f else .3f)) }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(a.title, color = if (gotIt) P.ink else P.dim, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(a.desc, color = P.faint, fontSize = 11.5.sp)
+                        }
+                        Text(if (gotIt) "✓" else "🔒", color = if (gotIt) P.good else P.faint, fontSize = 15.sp,
+                            modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            PillButton("Fechar", true, Modifier.fillMaxWidth()) { onClose() }
+        }
     }
 }
 
