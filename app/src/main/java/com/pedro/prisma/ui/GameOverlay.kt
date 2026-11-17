@@ -2,6 +2,7 @@ package com.pedro.prisma.ui
 
 import android.view.KeyEvent
 import android.widget.Toast
+import java.io.File
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,7 +59,13 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, title: Str
     var controls by remember { mutableStateOf(!hasGamepad()) }
 
     fun resume() { runCatching { retro.frameSpeed = 1; retro.audioEnabled = true }; paused = false }
-    fun pause() { runCatching { retro.frameSpeed = 0; retro.audioEnabled = false }; paused = true }
+    fun pause() {
+        runCatching { retro.frameSpeed = 0; retro.audioEnabled = false }
+        // auto-save do "Continuar" com o jogo vivo: no onPause o serialize corre com o teardown
+        // do core e falha no N64. Aqui (pausado, core vivo) funciona, igual aos slots.
+        runCatching { File(ctx.filesDir, "states/$stateKey.state").writeBytes(retro.serializeState()) }
+        paused = true
+    }
 
     Box(Modifier.fillMaxSize()) {
         if (controls) TouchGamepad(retro, system)
