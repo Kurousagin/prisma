@@ -171,9 +171,7 @@ class GameActivity : ComponentActivity() {
         if (::retroView.isInitialized) {
             // mapeamento do usuário tem prioridade; senão, reconhecimento padrão
             val code = event.keyCode
-            val out0 = ctrlMap[code] ?: if (isGameKey(code)) code else null
-            // N64: o core troca A<->B e X<->Y em relação ao RetroPad
-            val out = if (out0 != null && system == "Nintendo 64") n64Swap(out0) else out0
+            val out = ctrlMap[code] ?: if (isGameKey(code)) code else null
             if (out != null) {
                 when (event.action) {
                     KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, out)
@@ -188,14 +186,6 @@ class GameActivity : ComponentActivity() {
     private fun isSystemKey(k: Int) = k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_HOME ||
         k == KeyEvent.KEYCODE_APP_SWITCH || k == KeyEvent.KEYCODE_VOLUME_UP ||
         k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_MUTE || k == KeyEvent.KEYCODE_POWER
-
-    private fun n64Swap(code: Int) = when (code) {
-        KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
-        KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_A
-        KeyEvent.KEYCODE_BUTTON_X -> KeyEvent.KEYCODE_BUTTON_Y
-        KeyEvent.KEYCODE_BUTTON_Y -> KeyEvent.KEYCODE_BUTTON_X
-        else -> code
-    }
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         retroView.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))
