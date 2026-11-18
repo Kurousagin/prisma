@@ -225,8 +225,9 @@ private fun N64Pad(retro: GLRetroView) {
             CCluster(retro)
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Hold("B", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 58.dp, Color(0xFF36B06A))
-                Hold("A", KeyEvent.KEYCODE_BUTTON_A, retro, Modifier, 66.dp, Color(0xFF2F6AE0))
+                // mupen64plus_next mapeia por posição: N64 B=RetroPad Y, N64 A=RetroPad B
+                Hold("B", KeyEvent.KEYCODE_BUTTON_Y, retro, Modifier, 58.dp, Color(0xFF36B06A))
+                Hold("A", KeyEvent.KEYCODE_BUTTON_B, retro, Modifier, 66.dp, Color(0xFF2F6AE0))
             }
         }
 

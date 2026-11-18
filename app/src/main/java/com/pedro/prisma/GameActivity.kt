@@ -171,7 +171,9 @@ class GameActivity : ComponentActivity() {
         if (::retroView.isInitialized) {
             // mapeamento do usuário tem prioridade; senão, reconhecimento padrão
             val code = event.keyCode
-            val out = ctrlMap[code] ?: if (isGameKey(code)) code else null
+            val out0 = ctrlMap[code] ?: if (isGameKey(code)) code else null
+            // N64: o core mapeia por posição (N64 A=RetroPad B, N64 B=RetroPad Y)
+            val out = if (out0 != null && system == "Nintendo 64") n64Remap(out0) else out0
             if (out != null) {
                 when (event.action) {
                     KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, out)
@@ -181,6 +183,13 @@ class GameActivity : ComponentActivity() {
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    // Botão de baixo (A) -> N64 A (RetroPad B); o outro (B) -> N64 B/espada (RetroPad Y).
+    private fun n64Remap(code: Int) = when (code) {
+        KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
+        KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_Y
+        else -> code
     }
 
     private fun isSystemKey(k: Int) = k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_HOME ||
