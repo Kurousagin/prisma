@@ -66,8 +66,10 @@ import java.io.File
 // chave Pix aleatória (EVP) do projeto
 private const val PIX_KEY = "5213f532-d990-4e65-be9f-f0173882c9c4"
 
-private fun inProgress(ctx: Context, g: GameEntry) =
-    File(ctx.filesDir, "states/${Games.stateKey(g)}.state").exists()
+private fun stateFile(ctx: Context, g: GameEntry) =
+    File(ctx.filesDir, "states/${Games.stateKey(g)}.state")
+
+private fun inProgress(ctx: Context, g: GameEntry) = stateFile(ctx, g).exists()
 
 @Composable
 fun PrismaApp(remoteUrl: String?) {
@@ -199,7 +201,10 @@ fun BoxArt(game: GameEntry, modifier: Modifier = Modifier, reloadKey: Any = Unit
 @Composable
 private fun HomeTab(games: List<GameEntry>, onPickFolder: () -> Unit, onOpen: (GameEntry) -> Unit, onConsole: (String) -> Unit) {
     val ctx = LocalContext.current
+    // ordena por último jogado (mtime do save) e limita — senão a lista cresce sem fim
     val resumable = games.filter { inProgress(ctx, it) }
+        .sortedByDescending { stateFile(ctx, it).lastModified() }
+        .take(8)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         LogoHeader()
         if (resumable.isNotEmpty()) {
