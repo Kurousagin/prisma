@@ -78,6 +78,26 @@
   .shell.gba .startsel .gbtn{background:#241d4a;color:#fff}
   .shell.gba .shoulders .gbtn{background:#4a3cae;color:#fff;border-color:transparent}
   .shell.gba .dpad .gbtn{background:#241d4a}
+  /* --- Nintendo 64: charcoal, analógico + C-buttons amarelos --- */
+  .shell.n64{background:linear-gradient(180deg,#3a3a42,#1c1c22);border-radius:30px}
+  .shell.n64 .dpad{display:none}
+  .shell.n64 .stick{display:flex}
+  .shell.n64 .shoulders .gbtn{background:#2a2a30;color:#f3eeff;border-color:rgba(0,0,0,.4)}
+  .shell.n64 .startsel .gbtn{background:#c23b2e;color:#fff}
+  .stick{display:none;width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.07);
+         border:1px solid var(--line);align-items:center;justify-content:center;touch-action:none}
+  .knob{width:58px;height:58px;border-radius:50%;background:rgba(241,236,222,.5);
+        border:1px solid rgba(255,255,255,.4);pointer-events:none}
+  .n64face{display:flex;align-items:center;gap:14px}
+  .ccluster{position:relative;width:132px;height:132px}
+  .cbtn{position:absolute;width:42px;height:42px;border-radius:50%;background:#e8b84a;color:#3a2a00;
+        border:1px solid rgba(255,255,255,.35);font-weight:800;display:flex;align-items:center;
+        justify-content:center;touch-action:none}
+  .cbtn.on{filter:brightness(1.3);transform:scale(.92)}
+  .cbtn.cu{top:0;left:45px}.cbtn.cl{top:45px;left:0}.cbtn.cr{top:45px;right:0}.cbtn.cd{bottom:0;left:45px}
+  .abgroup{display:flex;gap:12px;align-items:center}
+  .n64a{background:#2f6ae0;color:#fff;border-color:transparent;width:70px;height:70px}
+  .n64b{background:#36b06a;color:#fff;border-color:transparent;transform:translateY(16px)}
 
   @media (orientation:landscape){
     body{padding:6px 16px;gap:8px;overflow:hidden}
@@ -104,6 +124,7 @@
         <button class="gbtn gr" data-g="RIGHT">▶</button>
         <button class="gbtn gd" data-g="DOWN">▼</button>
       </div>
+      <div class="stick" id="stick"><div class="knob" id="knob"></div></div>
       <div class="face" id="face"></div>
     </div>
     <div class="startsel" id="startsel"></div>
@@ -125,7 +146,7 @@
   }
   function bindAll(){ document.querySelectorAll('[data-g]').forEach(bind); }
 
-  var CLS={'NES':'nes','Super Nintendo':'snes','Game Boy':'gb','Game Boy Advance':'gba','Mega Drive':'md'};
+  var CLS={'NES':'nes','Super Nintendo':'snes','Game Boy':'gb','Game Boy Advance':'gba','Mega Drive':'md','Nintendo 64':'n64'};
   // face = [rótulo, código enviado]; lr = ombros; sel = rótulo do Select
   var LAYOUTS = {
     'NES':              {face:[['B','B'],['A','A']], lr:false, sel:'SELECT'},
@@ -133,13 +154,17 @@
     'Game Boy Advance': {face:[['B','B'],['A','A']], lr:true,  sel:'SELECT'},
     'Super Nintendo':   {face:'diamond',             lr:true,  sel:'SELECT'},
     // Mega Drive: A/B/C -> Y/B/A (genesis_plus_gx); Mode = Select
-    'Mega Drive':       {face:[['A','Y'],['B','B'],['C','A']], lr:false, sel:'MODE'}
+    'Mega Drive':       {face:[['A','Y'],['B','B'],['C','A']], lr:false, sel:'MODE'},
+    'Nintendo 64':      {n64:true}
   };
   var shell=document.getElementById('shell'), faceEl=document.getElementById('face'),
       shEl=document.getElementById('shoulders'), ssEl=document.getElementById('startsel');
 
+  function chip(sys){ document.querySelectorAll('.cchip').forEach(function(c){ c.classList.toggle('on', c.dataset.sys===sys); }); }
+
   function render(sys){
     var L = LAYOUTS[sys] || LAYOUTS['Super Nintendo'];
+    if(L.n64){ renderN64(); chip(sys); return; }
     shell.className = 'shell ' + (CLS[sys] || 'snes');
     if(L.face==='diamond'){
       faceEl.className='face diamond';
@@ -152,11 +177,68 @@
     shEl.innerHTML = L.lr ? '<button class="gbtn" data-g="L">L</button><button class="gbtn" data-g="R">R</button>' : '';
     ssEl.innerHTML = '<button class="gbtn" data-g="SELECT">'+L.sel+'</button><button class="gbtn" data-g="START">Start</button>';
     bindAll();
-    document.querySelectorAll('.cchip').forEach(function(c){ c.classList.toggle('on', c.dataset.sys===sys); });
+    chip(sys);
   }
 
-  var SYS=['NES','Super Nintendo','Game Boy','Game Boy Advance','Mega Drive'];
-  var SHORT={'NES':'NES','Super Nintendo':'SNES','Game Boy':'GB','Game Boy Advance':'GBA','Mega Drive':'Mega Drive'};
+  // ===== Nintendo 64: analógico (eixo esq.) + C-buttons (eixo dir.) + Z/L/R =====
+  function renderN64(){
+    shell.className = 'shell n64';
+    shEl.innerHTML = '<button class="gbtn" data-g="L">L</button>'+
+                     '<button class="gbtn" data-g="Z">Z</button>'+
+                     '<button class="gbtn" data-g="R">R</button>';
+    faceEl.className = 'face n64face';
+    faceEl.innerHTML =
+      '<div class="ccluster">'+
+        '<button class="cbtn cu" data-c="up">C</button>'+
+        '<button class="cbtn cl" data-c="left">C</button>'+
+        '<button class="cbtn cr" data-c="right">C</button>'+
+        '<button class="cbtn cd" data-c="down">C</button>'+
+      '</div>'+
+      '<div class="abgroup">'+
+        '<button class="gbtn rbtn n64b" data-g="B">B</button>'+
+        '<button class="gbtn rbtn n64a" data-g="A">A</button>'+
+      '</div>';
+    ssEl.innerHTML = '<button class="gbtn" data-g="START">Start</button>';
+    bindAll();         // L, Z, R, A, B, Start (digitais)
+    setupStick();      // analógico
+    bindC();           // C-buttons
+  }
+
+  function stick(src,x,y){ fetch('/stick?s='+src+'&x='+x.toFixed(3)+'&y='+y.toFixed(3),{method:'POST'}).catch(warn); }
+
+  var stickBound=false;
+  function setupStick(){
+    if(stickBound) return; stickBound=true;
+    var el=document.getElementById('stick'), knob=document.getElementById('knob');
+    var on=false,pid=null,last=0,pend=null;
+    function flush(){ if(pend){ var p=pend; pend=null; stick('L',p[0],p[1]); } }
+    function queue(x,y){ pend=[x,y]; var now=Date.now(); if(now-last>=40){ last=now; flush(); } else setTimeout(flush,40); }
+    function at(e){
+      var rc=el.getBoundingClientRect(), R=rc.width/2;
+      var dx=e.clientX-(rc.left+R), dy=e.clientY-(rc.top+R);
+      var m=Math.hypot(dx,dy), cl=Math.min(m,R), ux=m>0?dx/m:0, uy=m>0?dy/m:0;
+      knob.style.transform='translate('+(ux*cl)+'px,'+(uy*cl)+'px)';
+      queue(ux*(cl/R), uy*(cl/R));
+    }
+    el.addEventListener('pointerdown',function(e){e.preventDefault();on=true;pid=e.pointerId;try{el.setPointerCapture(pid);}catch(_){} at(e);});
+    el.addEventListener('pointermove',function(e){ if(on&&e.pointerId===pid) at(e); });
+    function end(e){ if(!on)return; on=false; knob.style.transform=''; pend=null; stick('L',0,0); }
+    el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
+  }
+
+  var cst={up:0,down:0,left:0,right:0};
+  function csend(){ stick('R', cst.right-cst.left, cst.down-cst.up); }
+  function bindC(){
+    document.querySelectorAll('[data-c]').forEach(function(el){
+      if(el._cb) return; el._cb=1; var dir=el.dataset.c;
+      el.addEventListener('pointerdown',function(e){e.preventDefault();el.classList.add('on');cst[dir]=1;if(navigator.vibrate)navigator.vibrate(6);csend();});
+      function up(e){e.preventDefault();el.classList.remove('on');cst[dir]=0;csend();}
+      el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('pointerleave',up);
+    });
+  }
+
+  var SYS=['NES','Super Nintendo','Game Boy','Game Boy Advance','Mega Drive','Nintendo 64'];
+  var SHORT={'NES':'NES','Super Nintendo':'SNES','Game Boy':'GB','Game Boy Advance':'GBA','Mega Drive':'Mega Drive','Nintendo 64':'N64'};
   var cEl=document.getElementById('consoles'), manual=false;
   SYS.forEach(function(s){
     var b=document.createElement('button'); b.className='cchip'; b.dataset.sys=s; b.textContent=SHORT[s];

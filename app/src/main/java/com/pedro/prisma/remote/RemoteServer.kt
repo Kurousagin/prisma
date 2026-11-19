@@ -1,6 +1,7 @@
 package com.pedro.prisma.remote
 
 import android.content.Context
+import com.swordfish.libretrodroid.GLRetroView
 import fi.iki.elonen.NanoHTTPD
 import java.net.NetworkInterface
 
@@ -25,6 +26,7 @@ class RemoteServer(private val context: Context, port: Int = 8080) : NanoHTTPD(p
         "A" to android.view.KeyEvent.KEYCODE_BUTTON_A, "B" to android.view.KeyEvent.KEYCODE_BUTTON_B,
         "X" to android.view.KeyEvent.KEYCODE_BUTTON_X, "Y" to android.view.KeyEvent.KEYCODE_BUTTON_Y,
         "L" to android.view.KeyEvent.KEYCODE_BUTTON_L1, "R" to android.view.KeyEvent.KEYCODE_BUTTON_R1,
+        "Z" to android.view.KeyEvent.KEYCODE_BUTTON_L2,   // gatilho Z do N64
         "START" to android.view.KeyEvent.KEYCODE_BUTTON_START, "SELECT" to android.view.KeyEvent.KEYCODE_BUTTON_SELECT,
     )
 
@@ -49,6 +51,18 @@ class RemoteServer(private val context: Context, port: Int = 8080) : NanoHTTPD(p
                     "up" -> InputBus.up(code)
                     else -> { InputBus.down(code); InputBus.up(code) }
                 }
+                text(Response.Status.OK, "ok")
+            }
+        }
+        "/stick" -> {   // analógico do N64 (eixo esquerdo = L / C-buttons = R)
+            if (!InputBus.active()) {
+                text(Response.Status.OK, "sem jogo")
+            } else {
+                val src = if (session.parameters["s"]?.firstOrNull() == "R")
+                    GLRetroView.MOTION_SOURCE_ANALOG_RIGHT else GLRetroView.MOTION_SOURCE_ANALOG_LEFT
+                val x = session.parameters["x"]?.firstOrNull()?.toFloatOrNull()?.coerceIn(-1f, 1f) ?: 0f
+                val y = session.parameters["y"]?.firstOrNull()?.toFloatOrNull()?.coerceIn(-1f, 1f) ?: 0f
+                InputBus.motion(src, x, y)
                 text(Response.Status.OK, "ok")
             }
         }

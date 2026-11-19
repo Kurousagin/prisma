@@ -23,6 +23,7 @@ class GameActivity : ComponentActivity() {
     private var system: String = ""
     private var key: String = "game"
     private var loaded = false   // carrega o estado só uma vez (não reverte ao voltar pro app)
+    private var ctrlMap: Map<Int, Int> = emptyMap()   // mapeamento do controle físico (se o usuário configurou)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +31,7 @@ class GameActivity : ComponentActivity() {
         val romUri = intent.getStringExtra("rom")?.let { android.net.Uri.parse(it) } ?: return finish()
         key = intent.getStringExtra("key") ?: romUri.lastPathSegment ?: "game"
         stateFile = File(filesDir, "states").apply { mkdirs() }.let { File(it, "$key.state") }
+        ctrlMap = com.pedro.prisma.ui.ControllerPrefs.retroMap(this)
 
         val data = GLRetroViewData(this).apply {
             coreFilePath = "${applicationInfo.nativeLibraryDir}/$core"
@@ -56,22 +58,36 @@ class GameActivity : ComponentActivity() {
         root.addView(retroView)
         system = intent.getStringExtra("system") ?: ""
         val gameTitle = intent.getStringExtra("title") ?: key
-        root.addView(ComposeView(this).apply { setContent { com.pedro.prisma.ui.GameOverlay(retroView, system, key, gameTitle) { finish() } } })
+        root.addView(ComposeView(this).apply {
+            setContent {
+                com.pedro.prisma.ui.GameOverlay(
+                    retroView, system, key, gameTitle,
+                    onReloadMap = { ctrlMap = com.pedro.prisma.ui.ControllerPrefs.retroMap(this@GameActivity) },
+                ) { finish() }
+            }
+        })
         setContentView(root)
         goFullscreen()                                      // tela cheia: esconde a barra de status/navegação
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
         com.pedro.prisma.remote.InputBus.system = system
 
-        // carrega o estado escolhido na tela de detalhe quando o core terminar de carregar (só uma vez)
+        // carrega o estado só quando o core já rodou >=1 frame: no SurfaceCreated o mupen64plus
+        // (N64) ainda não sabe o tamanho do save state e o unserialize falha. Tenta até dar certo (~3s).
+        val which = intent.getStringExtra("load") ?: "auto"
+        val autoBytes = if (which == "auto") stateFile?.takeIf { it.exists() }?.readBytes() else null
         lifecycleScope.launch {
+            var tries = 0
             retroView.getGLRetroEvents().collect { ev ->
-                if (ev is GLRetroView.GLRetroEvents.SurfaceCreated && !loaded) {
-                    loaded = true
-                    when (val which = intent.getStringExtra("load") ?: "auto") {
-                        "new" -> {}  // começa do zero
-                        "auto" -> stateFile?.takeIf { it.exists() }?.let { runCatching { retroView.unserializeState(it.readBytes()) } }
-                        else -> which.toIntOrNull()?.let { com.pedro.prisma.ui.StateSlots.load(retroView, this@GameActivity, key, it) }
+                if (ev is GLRetroView.GLRetroEvents.FrameRendered && !loaded) {
+                    val ok = when {
+                        which == "new" -> true
+                        which == "auto" -> autoBytes == null ||
+                            runCatching { retroView.unserializeState(autoBytes) }.getOrDefault(false)
+                        else -> which.toIntOrNull()?.let {
+                            com.pedro.prisma.ui.StateSlots.load(retroView, this@GameActivity, key, it)
+                        } ?: true
                     }
+                    if (ok || ++tries >= 180) loaded = true
                 }
             }
         }
@@ -119,6 +135,16 @@ class GameActivity : ComponentActivity() {
         super.onPause()
     }
 
+    // Auto-save do "Continuar" no BACK, com o core ainda vivo: no onPause o serialize
+    // corre com o teardown do core e falha no N64. (O "Sair" do menu salva ao pausar.)
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        if (::retroView.isInitialized) {
+            stateFile?.let { f -> runCatching { f.writeBytes(retroView.serializeState()) } }
+        }
+        super.onBackPressed()
+    }
+
     // Botões de jogo: manda pro emulador E consome (senão o Android trata B como Voltar,
     // DPAD navega/abre barra de status, etc.). BACK/volume seguem normais.
     private fun isGameKey(k: Int) = k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN ||
@@ -134,16 +160,41 @@ class GameActivity : ComponentActivity() {
     // comeria o D-pad p/ navegação de foco) e manda pro emulador. BACK/volume seguem normais.
     @SuppressLint("RestrictedApi")  // override legítimo; o super chamado é @RestrictedApi do androidx
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val code = event.keyCode
-        if (::retroView.isInitialized && isGameKey(code)) {
-            when (event.action) {
-                KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, code)
-                KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, code)
-            }
+        // tela de mapeamento (no menu de pausa) aguardando um botão: aprende e consome.
+        // Captura aqui porque o gamepad físico já chega neste dispatchKeyEvent (um Compose
+        // Dialog não recebe — é janela separada; por isso o mapeamento mora inline no overlay).
+        val cap = com.pedro.prisma.ui.KeyCapture.onKey
+        if (cap != null && event.action == KeyEvent.ACTION_DOWN && !isSystemKey(event.keyCode)) {
+            cap(event.keyCode)
             return true
+        }
+        if (::retroView.isInitialized) {
+            // mapeamento do usuário tem prioridade; senão, reconhecimento padrão
+            val code = event.keyCode
+            val out0 = ctrlMap[code] ?: if (isGameKey(code)) code else null
+            // N64: o core mapeia por posição (N64 A=RetroPad B, N64 B=RetroPad Y)
+            val out = if (out0 != null && system == "Nintendo 64") n64Remap(out0) else out0
+            if (out != null) {
+                when (event.action) {
+                    KeyEvent.ACTION_DOWN -> retroView.sendKeyEvent(KeyEvent.ACTION_DOWN, out)
+                    KeyEvent.ACTION_UP -> retroView.sendKeyEvent(KeyEvent.ACTION_UP, out)
+                }
+                return true
+            }
         }
         return super.dispatchKeyEvent(event)
     }
+
+    // Botão de baixo (A) -> N64 A (RetroPad B); o outro (B) -> N64 B/espada (RetroPad Y).
+    private fun n64Remap(code: Int) = when (code) {
+        KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_BUTTON_B
+        KeyEvent.KEYCODE_BUTTON_B -> KeyEvent.KEYCODE_BUTTON_Y
+        else -> code
+    }
+
+    private fun isSystemKey(k: Int) = k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_HOME ||
+        k == KeyEvent.KEYCODE_APP_SWITCH || k == KeyEvent.KEYCODE_VOLUME_UP ||
+        k == KeyEvent.KEYCODE_VOLUME_DOWN || k == KeyEvent.KEYCODE_VOLUME_MUTE || k == KeyEvent.KEYCODE_POWER
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         retroView.sendMotionEvent(GLRetroView.MOTION_SOURCE_DPAD, event.getAxisValue(MotionEvent.AXIS_HAT_X), event.getAxisValue(MotionEvent.AXIS_HAT_Y))

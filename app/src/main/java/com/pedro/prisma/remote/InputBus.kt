@@ -13,5 +13,7 @@ object InputBus {
 
     fun down(code: Int) { view?.sendKeyEvent(KeyEvent.ACTION_DOWN, code) }
     fun up(code: Int) { view?.sendKeyEvent(KeyEvent.ACTION_UP, code) }
+    /** Eixo analógico (N64): source = MOTION_SOURCE_ANALOG_LEFT/RIGHT; x,y em [-1,1]. */
+    fun motion(source: Int, x: Float, y: Float) { view?.sendMotionEvent(source, x, y) }
     fun active() = view != null
 }
