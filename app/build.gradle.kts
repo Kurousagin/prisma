@@ -21,8 +21,8 @@ android {
         applicationId = "com.pedro.prisma"
         minSdk = 31           // blur real (RenderEffect) a partir do Android 12
         targetSdk = 35        // exigido pela Play Store (apps novos) desde ago/2025
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.1.1"
     }
 
     signingConfigs {

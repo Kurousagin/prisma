@@ -50,7 +50,7 @@ import java.util.Locale
 
 /** Gamepad + barra superior (pausar / ocultar controles). Pausa concentra save/carregar/reiniciar/sair. */
 @Composable
-fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, title: String, onReloadMap: () -> Unit, onExit: () -> Unit) {
+fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, title: String, canSave: () -> Boolean, onReloadMap: () -> Unit, onExit: () -> Unit) {
     val ctx = LocalContext.current
     var showSlots by remember { mutableStateOf(false) }
     var showConfig by remember { mutableStateOf(false) }
@@ -63,7 +63,7 @@ fun GameOverlay(retro: GLRetroView, system: String, stateKey: String, title: Str
         runCatching { retro.frameSpeed = 0; retro.audioEnabled = false }
         // auto-save do "Continuar" com o jogo vivo: no onPause o serialize corre com o teardown
         // do core e falha no N64. Aqui (pausado, core vivo) funciona, igual aos slots.
-        runCatching { File(ctx.filesDir, "states/$stateKey.state").writeBytes(retro.serializeState()) }
+        if (canSave()) runCatching { StateSlots.write(File(ctx.filesDir, "states/$stateKey.state"), retro.serializeState()) }
         paused = true
     }
 
