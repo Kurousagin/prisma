@@ -22,6 +22,20 @@ object StateSlots {
         val used get() = time != null
     }
 
+    /** Só cabeçalho + zeros: o core serializou antes de rodar. Carregar isso congela o emulador. */
+    fun isBlank(b: ByteArray): Boolean {
+        for (i in 64 until b.size) if (b[i] != 0.toByte()) return false
+        return true
+    }
+
+    /** Grava via arquivo temporário e nunca troca um save bom por um estado vazio. */
+    fun write(f: File, b: ByteArray) {
+        if (isBlank(b)) return
+        val tmp = File(f.path + ".tmp")
+        tmp.writeBytes(b)
+        if (!tmp.renameTo(f)) tmp.delete()
+    }
+
     private fun dir(ctx: Context) = File(ctx.filesDir, "states").apply { mkdirs() }
     private fun stateFile(ctx: Context, key: String, n: Int) = File(dir(ctx), "$key.slot$n.state")
     private fun thumbFile(ctx: Context, key: String, n: Int) = File(dir(ctx), "$key.slot$n.png")
@@ -39,7 +53,7 @@ object StateSlots {
 
     /** Salva o estado no slot e captura a miniatura (assíncrona). onDone roda ao terminar. */
     fun save(retro: GLRetroView, ctx: Context, key: String, n: Int, onDone: () -> Unit) {
-        runCatching { stateFile(ctx, key, n).writeBytes(retro.serializeState()) }
+        runCatching { write(stateFile(ctx, key, n), retro.serializeState()) }
         captureThumb(retro) { bmp ->
             if (bmp != null) runCatching {
                 thumbFile(ctx, key, n).outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 90, it) }
@@ -51,7 +65,10 @@ object StateSlots {
     fun load(retro: GLRetroView, ctx: Context, key: String, n: Int): Boolean {
         val f = stateFile(ctx, key, n)
         if (!f.exists()) return false
-        return runCatching { retro.unserializeState(f.readBytes()); true }.getOrDefault(false)
+        return runCatching {
+            val b = f.readBytes()
+            !isBlank(b) && retro.unserializeState(b)
+        }.getOrDefault(false)
     }
 
     private fun captureThumb(view: GLRetroView, cb: (Bitmap?) -> Unit) {

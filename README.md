@@ -78,6 +78,20 @@ keyAlias=...
 keyPassword=...
 ```
 
+## Versões
+
+Seguimos [Versionamento Semântico](https://semver.org/lang/pt-BR/), sempre com três números: `MAJOR.MINOR.PATCH`.
+
+| Sobe | Quando | Exemplo |
+|---|---|---|
+| **PATCH** (`1.1.0 → 1.1.1`) | Só correções, sem recurso novo | velocidade do jogo, tela preta |
+| **MINOR** (`1.1.x → 1.2.0`) | Recurso ou console novo, compatível com saves e configurações | Nintendo 64, backup dos saves |
+| **MAJOR** (`1.x.x → 2.0.0`) | Quebra compatibilidade: saves antigos deixam de carregar, Android mínimo sobe ou reformulação completa | — |
+
+A cada release: `versionName` = a versão, `versionCode` +1 (nunca repete nem desce),
+tag `vX.Y.Z`, APK `Prisma-X.Y.Z.apk`, entrada nova no feed da landing (`docs/index.html`).
+Histórico: v1.0 (= 1.0.0) → 1.0.1 → 1.1.0 → 1.1.1.
+
 ## Créditos e licenças
 
 - **App Prisma** — GPLv3 (veja [LICENSE](LICENSE)).

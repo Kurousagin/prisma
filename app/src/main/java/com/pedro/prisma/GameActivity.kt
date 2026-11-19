@@ -25,6 +25,19 @@ class GameActivity : ComponentActivity() {
     private var loaded = false   // carrega o estado só uma vez (não reverte ao voltar pro app)
     private var ctrlMap: Map<Int, Int> = emptyMap()   // mapeamento do controle físico (se o usuário configurou)
 
+    /**
+     * O LibretroDroid roda 1 quadro do core por vsync; em tela de 90/120 Hz (Moto Edge 30 Neo
+     * alterna sozinho) o jogo acelerava 1,5x/2x com áudio distorcido. Fixa a janela no modo de 60 Hz.
+     */
+    private fun lockRefreshRate60() {
+        val d = display ?: return
+        val cur = d.mode
+        val mode = d.supportedModes
+            .filter { it.physicalWidth == cur.physicalWidth && it.physicalHeight == cur.physicalHeight }
+            .minByOrNull { kotlin.math.abs(it.refreshRate - 60f) } ?: return
+        window.attributes = window.attributes.apply { preferredDisplayModeId = mode.modeId }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val core = intent.getStringExtra("core") ?: return finish()
@@ -62,11 +75,13 @@ class GameActivity : ComponentActivity() {
             setContent {
                 com.pedro.prisma.ui.GameOverlay(
                     retroView, system, key, gameTitle,
+                    canSave = { loaded },
                     onReloadMap = { ctrlMap = com.pedro.prisma.ui.ControllerPrefs.retroMap(this@GameActivity) },
                 ) { finish() }
             }
         })
         setContentView(root)
+        lockRefreshRate60()
         goFullscreen()                                      // tela cheia: esconde a barra de status/navegação
         com.pedro.prisma.remote.InputBus.view = retroView   // controle pelo celular (QR) manda direto pro jogo
         com.pedro.prisma.remote.InputBus.system = system
@@ -74,7 +89,9 @@ class GameActivity : ComponentActivity() {
         // carrega o estado só quando o core já rodou >=1 frame: no SurfaceCreated o mupen64plus
         // (N64) ainda não sabe o tamanho do save state e o unserialize falha. Tenta até dar certo (~3s).
         val which = intent.getStringExtra("load") ?: "auto"
-        val autoBytes = if (which == "auto") stateFile?.takeIf { it.exists() }?.readBytes() else null
+        // save vazio (gravado por versões antigas) é ignorado: carregá-lo congelava o jogo
+        val autoBytes = if (which == "auto") stateFile?.takeIf { it.exists() }?.readBytes()
+            ?.takeUnless { com.pedro.prisma.ui.StateSlots.isBlank(it) } else null
         lifecycleScope.launch {
             var tries = 0
             retroView.getGLRetroEvents().collect { ev ->
@@ -126,12 +143,18 @@ class GameActivity : ComponentActivity() {
         }
     }
 
+    // Só depois que o save carregou: sair durante a abertura gravava estado vazio ou a tela
+    // de título por cima do progresso.
+    private fun saveContinue() {
+        val f = stateFile ?: return
+        if (::retroView.isInitialized && loaded) runCatching { com.pedro.prisma.ui.StateSlots.write(f, retroView.serializeState()) }
+    }
+
     // salva o estado ao sair/minimizar (core ainda vivo no onPause)
     override fun onPause() {
         com.pedro.prisma.remote.InputBus.view = null
         com.pedro.prisma.remote.InputBus.system = ""
-        val f = stateFile
-        if (f != null) runCatching { f.writeBytes(retroView.serializeState()) }
+        saveContinue()
         super.onPause()
     }
 
@@ -139,9 +162,7 @@ class GameActivity : ComponentActivity() {
     // corre com o teardown do core e falha no N64. (O "Sair" do menu salva ao pausar.)
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        if (::retroView.isInitialized) {
-            stateFile?.let { f -> runCatching { f.writeBytes(retroView.serializeState()) } }
-        }
+        saveContinue()
         super.onBackPressed()
     }
 
