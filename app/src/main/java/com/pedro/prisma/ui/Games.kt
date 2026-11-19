@@ -30,6 +30,8 @@ object Games {
             "Nintendo - Game Boy Advance"),
         GameSystem("Mega Drive", setOf("md", "gen", "smd", "sms", "gg"), "libgenesis_plus_gx_libretro_android.so",
             "Sega - Mega Drive - Genesis"),
+        GameSystem("Nintendo 64", setOf("n64", "z64", "v64"), "libmupen64plus_next_gles3_libretro_android.so",
+            "Nintendo - Nintendo 64"),
     )
     private val byExt = systems.flatMap { s -> s.exts.map { it to s } }.toMap()
 

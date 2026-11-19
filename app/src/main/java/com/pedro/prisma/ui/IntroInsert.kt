@@ -75,6 +75,7 @@ private fun bodyBrush(sys: String): Brush = when (sys) {
     "Game Boy" -> Brush.verticalGradient(listOf(gy(0xB9BBB0), gy(0x9A9C90)))
     "Game Boy Advance" -> Brush.verticalGradient(listOf(gy(0x44445A), gy(0x26262E)))
     "Mega Drive" -> Brush.verticalGradient(listOf(gy(0x30303A), gy(0x18181E)))
+    "Nintendo 64" -> Brush.verticalGradient(listOf(gy(0x4A4A52), gy(0x2E2E36))) // cartucho cinza
     else -> Brush.verticalGradient(listOf(gy(0xDCD9D0), gy(0xBFBCB0))) // NES / SNES
 }
 
@@ -158,7 +159,7 @@ private fun CartridgeArt(system: String, cover: ImageBitmap?, modifier: Modifier
         // faixa de cor no topo do cartucho de Mega Drive
         if (system == "Mega Drive") rr(systemColor(system), 0f, 0f, w, h * 0.06f, r)
         // ranhuras de pega
-        val ridge = if (system == "Game Boy Advance" || system == "Mega Drive")
+        val ridge = if (system == "Game Boy Advance" || system == "Mega Drive" || system == "Nintendo 64")
             Color.White.copy(alpha = .12f) else Color.Black.copy(alpha = .2f)
         for (i in 0..4) rr(ridge, w * (0.14f + i * 0.16f), h * 0.07f, w * 0.09f, h * 0.045f, 2f)
         // janela com a capa (ou gradiente do console)
@@ -240,6 +241,25 @@ private fun DrawScope.drawConsole(system: String, ledOn: Boolean) {
             drawCircle(gy(0x2A2155), h * 0.09f, Offset(w * 0.86f, h * 0.46f))
             drawCircle(gy(0x2A2155), h * 0.09f, Offset(w * 0.78f, h * 0.62f))
             drawCircle(led, h * 0.03f, Offset(w * 0.12f, h * 0.24f))
+        }
+        "Nintendo 64" -> {
+            // corpo charcoal
+            rr(bodyBrush(system), 0f, h * 0.04f, w, h * 0.96f, h * 0.16f)
+            // tampa superior (expansion/cartucho) mais clara
+            rr(Brush.verticalGradient(listOf(gy(0x45454F), gy(0x30303A))), w * 0.14f, 0f, w * 0.72f, h * 0.4f, h * 0.12f)
+            // slot do cartucho no topo-centro
+            rr(SLOT, w * 0.33f, h * 0.04f, w * 0.34f, h * 0.13f, h * 0.03f)
+            // faixa frontal recuada com as 4 portas de controle
+            rr(gy(0x1C1C22), w * 0.06f, h * 0.56f, w * 0.88f, h * 0.36f, h * 0.08f)
+            for (i in 0..3) {
+                val cx = w * (0.19f + i * 0.21f)
+                drawCircle(gy(0x0C0C10), w * 0.05f, Offset(cx, h * 0.74f))
+                drawCircle(gy(0x34343E), w * 0.028f, Offset(cx, h * 0.74f))
+            }
+            // reset (vermelho) + power ao lado do slot
+            rr(Color(0xFFC23B2E), w * 0.44f, h * 0.44f, w * 0.055f, h * 0.06f, 2f)
+            rr(gy(0x6F7266), w * 0.515f, h * 0.44f, w * 0.055f, h * 0.06f, 2f)
+            drawCircle(led, h * 0.03f, Offset(w * 0.12f, h * 0.48f))
         }
     }
 }
