@@ -20,7 +20,7 @@ Você traz suas próprias ROMs — o Prisma não distribui jogos nem BIOS.
 
 Rodam **nativos**, sem depender de outros apps:
 
-NES · Super Nintendo · Game Boy / Color · Game Boy Advance · Mega Drive / Genesis / Master System / Game Gear
+NES · Super Nintendo · Game Boy / Color · Game Boy Advance · Nintendo 64 · Mega Drive / Genesis / Master System / Game Gear
 
 ## Recursos
 
